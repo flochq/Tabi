@@ -1,12 +1,13 @@
 // js/app.js
 import { initGPS } from './gps.js';
+import { initFog, revealLocation } from './fog.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
   const map = L.map('map', {
     zoomControl: false,
     attributionControl: false
-  }).setView([48.8566, 2.3522], 14); // Paris par défaut
+  }).setView([48.8566, 2.3522], 14);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
@@ -17,16 +18,20 @@ const initMap = () => {
 };
 
 const map = initMap();
-console.log("Tabi : Moteur cartographique initialisé.");
 
-// --- 2. GESTION DE L'UTILISATEUR SUR LA CARTE ---
+// ➔ NOUVEAU : On initialise le brouillard géant par dessus la carte
+initFog(map);
+
+console.log("Tabi : Moteur cartographique et Brouillard initialisés.");
+
+// --- 2. GESTION DE L'UTILISATEUR ---
 let userMarker = null;
 
 const updateMapLocation = (lat, lng, accuracy) => {
-  console.log(`Nouvelle position : ${lat}, ${lng} (Précision: ${accuracy}m)`);
+  // ➔ NOUVEAU : On dissipe le brouillard autour de la nouvelle position
+  revealLocation(lat, lng);
 
   if (!userMarker) {
-    // Premier fix GPS : Création du marqueur de l'utilisateur
     userMarker = L.circleMarker([lat, lng], {
       radius: 8,
       fillColor: "#2563eb",
@@ -35,24 +40,20 @@ const updateMapLocation = (lat, lng, accuracy) => {
       opacity: 1,
       fillOpacity: 1
     }).addTo(map);
-
-    // On centre et on zoome sur l'utilisateur la première fois
     map.setView([lat, lng], 17);
   } else {
-    // Mises à jour suivantes : on déplace juste le marqueur
     userMarker.setLatLng([lat, lng]);
   }
 };
 
 const handleGPSError = (message) => {
   console.error("Tabi GPS:", message);
-  alert(`Erreur de localisation : ${message}`);
 };
 
 // --- 3. LANCEMENT DU GPS ---
 initGPS(updateMapLocation, handleGPSError);
 
-// --- 4. SERVICE WORKER (PWA) ---
+// --- 4. PWA ---
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
