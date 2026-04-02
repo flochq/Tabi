@@ -28,7 +28,7 @@ console.log("Tabi : Moteur cartographique et Brouillard initialisés.");
 let userMarker = null;
 
 const updateMapLocation = (lat, lng, accuracy) => {
-  // ➔ NOUVEAU : On dissipe le brouillard autour de la nouvelle position
+  // On dissipe le brouillard autour de la nouvelle position
   revealLocation(lat, lng);
 
   if (!userMarker) {
@@ -44,6 +44,9 @@ const updateMapLocation = (lat, lng, accuracy) => {
   } else {
     userMarker.setLatLng([lat, lng]);
   }
+
+  // ➔ CRUCIAL : On force le marqueur à passer au-dessus du brouillard
+  userMarker.bringToFront();
 };
 
 const handleGPSError = (message) => {
