@@ -62,3 +62,5 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
+// SIMULATION : Fait apparaître un joueur à Paris après 2 secondes pour tester le brouillard
+setTimeout(() => updateMapLocation(48.8566, 2.3522, 10), 2000);
