@@ -7,15 +7,8 @@ const REVEAL_RADIUS_KM = 0.05; // Rayon de découverte : 50 mètres
 const CIRCLE_STEPS = 32;       // Qualité du cercle de découpe (plus c'est haut, plus c'est rond, mais plus c'est lourd)
 const STORAGE_KEY = "tabi-fog-v1";
 
-// 2. Le monde entier (un polygone géant)
-// Attention : Turf.js utilise le format [Longitude, Latitude] !
-const WORLD = turf.polygon([[
-  [-180, -90],
-  [180, -90],
-  [180, 90],
-  [-180, 90],
-  [-180, -90]
-]]);
+// 2. Le monde entier (un polygone géant sécurisé pour les calculs)
+const WORLD = turf.bboxPolygon([-180, -85, 180, 85]);
 
 let exploredArea = null; // Stockera le polygone de tout ce qui a été révélé
 let fogLayer = null;     // La couche visuelle sur Leaflet
