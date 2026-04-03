@@ -37,6 +37,12 @@
     </button>
   </div>
 
+<button id="route-btn" onclick="suggestRoute()">🧭 Suggérer une balade</button>
+  <div id="route-info" style="display: none;">
+    <div>🎯 <span id="route-dist">0</span> km (<span id="route-time">0</span> min)</div>
+    <button onclick="clearRoute()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+  </div>
+  
   <div id="stats">
     <div class="stat-chip">
       <span class="stat-val" id="stat-pois">0</span>
