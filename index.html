@@ -16,42 +16,19 @@
   <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="css/styles.css?v=6">
+  <link rel="stylesheet" href="css/styles.css?v=8">
 </head>
 <body>
   <div id="map"></div>
-
   <div id="logo">
     <h1>Tabi</h1>
     <p>explorez l'inconnu</p>
   </div>
   <div id="gps-dot"></div>
 
-  <div id="gacha-btns" style="position:absolute;top:70px;left:16px;z-index:1000;display:flex;flex-direction:column;gap:8px;">
-    <button onclick="openDrawScreen()" style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:20px;background:rgba(37,99,235,0.92);color:#fff;border:none;font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.06em;cursor:pointer;box-shadow:0 2px 12px rgba(37,99,235,0.35);backdrop-filter:blur(8px);">
-      <span id="btn-draw-dot" style="display:none;width:7px;height:7px;border-radius:50%;background:#fbbf24;flex-shrink:0;"></span>
-      🎴 Tirages · <span id="btn-draws-count">0</span>
-    </button>
-    <button onclick="openCollectionScreen()" style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:20px;background:rgba(255,255,255,0.88);color:#1e293b;border:1px solid rgba(37,99,235,0.2);font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.06em;cursor:pointer;backdrop-filter:blur(8px);">
-      🗃️ Collection · <span id="btn-collection-count">0</span>
-    </button>
-  </div>
-
-<button id="route-btn" onclick="suggestRoute()">🧭 Suggérer une balade</button>
   <div id="route-info" style="display: none;">
     <div>🎯 <span id="route-dist">0</span> km (<span id="route-time">0</span> min)</div>
     <button onclick="clearRoute()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
-  </div>
-  
-  <div id="stats">
-    <div class="stat-chip">
-      <span class="stat-val" id="stat-pois">0</span>
-      <span class="stat-lbl">découvertes</span>
-    </div>
-    <div class="stat-chip" id="stat-city-chip" style="display: none;">
-      <span class="stat-val" id="stat-coverage">0%</span>
-      <span class="stat-lbl" id="city-name">Ville</span>
-    </div>
   </div>
 
   <div id="camera-btn" style="display: none;">
@@ -60,11 +37,36 @@
   </div>
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" />
   
+  <nav id="bottom-bar">
+    <button class="nav-item" onclick="suggestRoute()">
+      <span class="nav-icon" id="route-nav-icon">🧭</span>
+      <span class="nav-label" id="route-nav-label">Balade</span>
+    </button>
+    
+    <div class="nav-item" id="stat-city-chip">
+      <span class="nav-icon stat-val" id="stat-coverage" style="color: #fff;">0%</span>
+      <span class="nav-label" id="city-name" style="color: #38bdf8;">Recherche...</span>
+    </div>
+    
+    <button class="nav-item" onclick="openDrawScreen()">
+      <div style="position:relative;">
+        <span class="nav-icon">🎴</span>
+        <span id="btn-draw-dot" style="display:none;position:absolute;top:-2px;right:-8px;width:8px;height:8px;border-radius:50%;background:#fbbf24;"></span>
+      </div>
+      <span class="nav-label">Tirages (<span id="btn-draws-count">0</span>)</span>
+    </button>
+  </nav>
 
   <div id="draw-screen" style="position:fixed;inset:0;z-index:1150;background:#080d1f;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;">
     <div style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;z-index:2;position:relative;">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;color:#fff;">✨ Tirage</div>
-      <button onclick="closeDrawScreen()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:1.3rem;cursor:pointer;">✕</button>
+      
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button onclick="openCollectionScreen()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:6px 12px;border-radius:12px;color:#fff;font-family:'Space Mono',monospace;font-size:0.6rem;cursor:pointer;">
+          🗃️ Collection (<span id="btn-collection-count">0</span>)
+        </button>
+        <button onclick="closeDrawScreen()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:1.3rem;cursor:pointer;">✕</button>
+      </div>
     </div>
     <div id="globe-zone" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;position:relative;width:100%;">
       <div id="globe-stars" style="position:absolute;inset:0;pointer-events:none;"></div>
@@ -72,31 +74,28 @@
       <div id="globe-status" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.45);letter-spacing:0.1em;min-height:1.2em;z-index:1;"></div>
     </div>
     <div style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;z-index:2;">
-      <div id="globe-tokens" style="display:flex;gap:7px;"></div>
       <button id="globe-draw-btn" onclick="globeDraw()" style="width:100%;max-width:280px;padding:16px;border-radius:30px;background:#2563eb;color:#fff;border:none;font-family:'Space Mono',monospace;font-size:0.82rem;letter-spacing:0.06em;cursor:pointer;box-shadow:0 4px 24px rgba(37,99,235,0.5);">Tirer une carte 🎴</button>
-      <div id="globe-next-info" style="font-family:'Space Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.35);text-align:center;line-height:1.8;"></div>
     </div>
   </div>
 
   <div id="draw-overlay" style="position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,0.0);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:background 0.4s;">
-    <div id="reveal-particles" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;"></div>
     <div id="reveal-card-wrap" style="transform:rotateY(90deg) scale(0.8);opacity:0;transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s;position:relative;z-index:1;"></div>
     <div id="reveal-label" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0);letter-spacing:0.12em;transition:color 0.4s 0.3s;text-align:center;"></div>
     <button id="reveal-close-btn" onclick="closeReveal()" style="opacity:0;transition:opacity 0.4s 0.5s;padding:11px 32px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-family:'Space Mono',monospace;font-size:0.7rem;cursor:pointer;">Fermer</button>
   </div>
 
-  <div id="collection-screen" style="position:fixed;inset:0;z-index:1150;background:rgba(248,250,252,0.98);display:none;flex-direction:column;overflow:hidden;backdrop-filter:blur(12px);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(0,0,0,0.07);">
-      <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#1e293b;">🗃️ Ma Collection</h2>
-      <button onclick="closeCollectionScreen()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;">✕</button>
+  <div id="collection-screen" style="position:fixed;inset:0;z-index:1250;background:rgba(8,13,31,0.98);display:none;flex-direction:column;overflow:hidden;backdrop-filter:blur(12px);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.1);">
+      <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#fff;">🗃️ Ma Collection</h2>
+      <button onclick="closeCollectionScreen()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#94a3b8;">✕</button>
     </div>
     <div id="collection-content" style="flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"></div>
   </div>
 
-  <div id="gacha-overlay" style="position:fixed;inset:0;z-index:1250;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div id="gacha-overlay" style="position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
     <div id="gacha-overlay-card" style="display:flex;flex-direction:column;align-items:center;gap:16px;"></div>
   </div>
 
-  <script type="module" src="js/app.js?v=6"></script>
+  <script type="module" src="js/app.js?v=8"></script>
 </body>
 </html>
