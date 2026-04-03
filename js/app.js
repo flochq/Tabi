@@ -4,6 +4,7 @@ import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from 
 import { fetchPOIs, fetchCityBoundary } from './api.js';
 import { updateGachaDistance } from './gacha.js';
 import { fetchWalkingRoute } from './routing.js';
+import { initMissions, updateMissionProgress } from './missions.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
