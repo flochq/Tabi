@@ -99,11 +99,18 @@ if (cameraTrigger && cameraInput) {
 
 // --- 4. GESTION DES MONUMENTS (POI) ---
 const loadMonuments = async (lat, lng) => {
-  if (isFetchingPOIs) return; // Sécurité : On bloque si déjà en cours
+  if (isFetchingPOIs) return; // Sécurité anti-spam
   isFetchingPOIs = true;
 
   const pois = await fetchPOIs(lat, lng, 1000); 
   
+  // Si l'API échoue ou ne renvoie rien (ex: blocage temporaire), on annule
+  if (!pois || pois.length === 0) {
+    isFetchingPOIs = false;
+    lastFetchPos = null; // ➔ CRUCIAL : On force l'app à retenter la prochaine fois
+    return;
+  }
+
   pois.forEach(poi => {
     if (!loadedPOIs.has(poi.id)) {
       loadedPOIs.add(poi.id);
@@ -122,7 +129,9 @@ const loadMonuments = async (lat, lng) => {
     }
   });
 
-  isFetchingPOIs = false; // On rouvre le verrou
+  // ➔ NOUVEAU : On valide la position de recherche uniquement après un succès confirmé !
+  lastFetchPos = L.latLng(lat, lng);
+  isFetchingPOIs = false; 
 };
 
 const checkProximity = (userLat, userLng) => {
@@ -255,9 +264,10 @@ const updateMapLocation = (lat, lng, accuracy) => {
     }).catch(() => isFetchingCity = false);
   }
 
+// E. Téléchargement POI tous les 500m
   const currentLatLng = L.latLng(lat, lng);
   if (!lastFetchPos || lastFetchPos.distanceTo(currentLatLng) > 500) {
-    lastFetchPos = currentLatLng;
+    // C'est désormais la fonction loadMonuments qui validera la position en cas de succès
     loadMonuments(lat, lng);
   }
 
