@@ -28,9 +28,10 @@ export async function initFog(map) {
     }
   }
 
-  // 3. On dessine sur la carte
+// 3. On dessine sur la carte
   fogLayer = L.geoJSON(initialFog, {
     style: {
+      className: 'fog-layer', // ➔ NOUVEAU : On applique notre effet de flou CSS
       fillColor: FOG_COLOR,
       fillOpacity: FOG_OPACITY,
       color: "none",
