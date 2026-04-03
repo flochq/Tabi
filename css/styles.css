@@ -54,3 +54,54 @@ body, html {
   0% { transform: scale(0); }
   100% { transform: scale(1); }
 }
+/* --- Appareil Photo --- */
+#camera-btn {
+  position: absolute; 
+  bottom: 110px; 
+  left: 50%; 
+  transform: translateX(-50%);
+  z-index: 1000; 
+  text-align: center;
+}
+
+#camera-trigger {
+  display: flex; 
+  align-items: center; 
+  gap: 8px;
+  padding: 14px 28px; 
+  border-radius: 30px;
+  background: var(--accent); 
+  color: #fff;
+  font-family: "Space Mono", monospace; 
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 0.05em; 
+  border: none; 
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.5);
+  transition: transform 0.1s;
+}
+
+#camera-trigger:active {
+  transform: scale(0.95);
+}
+
+#camera-poi-name {
+  font-family: "Space Mono", monospace; 
+  font-size: 0.65rem;
+  color: #1e293b; 
+  margin-top: 8px; 
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(4px);
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: bold;
+}
+
+/* Modifier l'apparence des monuments découverts */
+.poi-dot.discovered {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+}
