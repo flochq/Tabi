@@ -23,8 +23,8 @@ export const RARITY_LABELS = { common: "Commune", rare: "Rare", epic: "Épique",
 export const RARITY_STARS = { common: "⭐", rare: "⭐⭐", epic: "⭐⭐⭐", legendary: "🌟" };
 
 export const GACHA_CITIES = [
-  { name: "Paris", region: "Île-de-France", pop: 2161000, rarity: "common", emoji: "🥐", lat: 48.8566, lon: 2.3522 },
-  { name: "Kyoto", region: "Kansai", pop: 1475000, rarity: "epic", emoji: "⛩️", lat: 35.0116, lon: 135.7681 }
+  { name: "Paris", region: "Île-de-France", rarity: "common", emoji: "🥐", lat: 48.8566, lon: 2.3522, uid: "FR-PAR-01", type: "Métropole" },
+  { name: "Kyoto", region: "Kansai", rarity: "epic", emoji: "⛩️", lat: 35.0116, lon: 135.7681, uid: "JP-KYO-01", type: "Historique" }
 ];
 
 // Tableau vide temporaire pour ne pas faire crasher l'animation 3D du globe
