@@ -66,6 +66,9 @@ const loadMonuments = async (lat, lng) => {
   console.log("Tabi : Recherche de monuments aux alentours...");
   const pois = await fetchPOIs(lat, lng, 1000); 
   
+// ➔ AJOUTE CECI POUR DEBUGGER
+  console.log(`Tabi : J'ai trouvé ${pois.length} monuments autour de toi !`, pois);
+  
   pois.forEach(poi => {
     if (!loadedPOIs.has(poi.id)) {
       loadedPOIs.add(poi.id);
