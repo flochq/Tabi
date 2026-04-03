@@ -72,3 +72,33 @@ export function revealLocation(lat, lng) {
     console.error("Erreur Turf difference", e);
   }
 }
+
+export function revealMassiveLocation(lat, lng) {
+  if (!fogLayer) return;
+
+  // On crée un énorme cercle de 350 mètres !
+  const massiveCircle = turf.circle([lng, lat], 0.35, {
+    steps: 32,
+    units: 'kilometers'
+  });
+
+  if (!exploredArea) {
+    exploredArea = massiveCircle;
+  } else {
+    try {
+      exploredArea = turf.union(exploredArea, massiveCircle);
+    } catch (e) {
+      console.warn("Erreur Turf union massive", e);
+      return;
+    }
+  }
+
+  try {
+    const currentFog = turf.difference(WORLD, exploredArea);
+    fogLayer.clearLayers();
+    fogLayer.addData(currentFog || WORLD);
+    saveFog(exploredArea); // Sauvegarde robuste via IndexedDB
+  } catch (e) {
+    console.error("Erreur Turf difference massive", e);
+  }
+}
