@@ -2,8 +2,6 @@
 import { initGPS } from './gps.js';
 import { initFog, revealLocation } from './fog.js';
 
-// MOUCHARD : Confirme que le fichier n'est plus bloqué par le cache
-alert("Le moteur Tabi démarre !");
 
 const initMap = () => {
   const map = L.map('map', {
@@ -43,12 +41,5 @@ const updateMapLocation = (lat, lng, accuracy) => {
     userMarker.setLatLng([lat, lng]);
   }
 };
-
-// Simulation : si le GPS ne capte pas chez toi au bout de 2 secondes, on te téléporte à Paris
-setTimeout(() => {
-  if (!userMarker) {
-    updateMapLocation(48.8566, 2.3522, 10);
-  }
-}, 2000);
 
 initGPS(updateMapLocation, (msg) => console.warn(msg));
