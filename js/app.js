@@ -3,6 +3,7 @@ import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
 import { updateGachaDistance } from './gacha.js'; // ➔ Import du Gacha
+import { fetchWalkingRoute } from './routing.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
@@ -31,6 +32,7 @@ let allKnownPOIs = [];
 let nearbyPOI = null;
 let cityBoundary = null;
 let cityArea = 0;
+let currentRouteLayer = null;
 
 // Variables du podomètre
 let totalDistWalked = parseFloat(localStorage.getItem("tabi-dist")) || 0;
@@ -138,6 +140,63 @@ const checkProximity = (userLat, userLng) => {
     nearbyPOI = null;
     if (cameraBtn) cameraBtn.style.display = "none";
   }
+};
+
+// --- LOGIQUE DU PLANIFICATEUR D'ITINÉRAIRES ---
+window.suggestRoute = async () => {
+  if (!lastGpsPos) return alert("📍 En attente du signal GPS, marchez un peu...");
+
+  // 1. Filtrer les monuments qui n'ont PAS encore été découverts
+  const undiscovered = allKnownPOIs.filter(p => !discoveredPOIs.has(p.id));
+  if (undiscovered.length === 0) {
+    return alert("Bravo ! Vous avez découvert tous les monuments aux alentours. Éloignez-vous pour en charger de nouveaux.");
+  }
+
+  // 2. Trier ces monuments par distance par rapport au joueur
+  undiscovered.forEach(p => {
+    p.distToUser = turf.distance([lastGpsPos.lng, lastGpsPos.lat], [p.lng, p.lat]);
+  });
+  undiscovered.sort((a, b) => a.distToUser - b.distToUser);
+
+  // 3. Sélectionner jusqu'à 3 monuments (les plus proches) pour faire un joli parcours
+  const targets = undiscovered.slice(0, 3);
+  
+  // Format [longitude, latitude] pour l'API
+  const coords = [[lastGpsPos.lng, lastGpsPos.lat], ...targets.map(t => [t.lng, t.lat])];
+
+  // 4. Appel de l'API de routage
+  const btn = document.getElementById("route-btn");
+  btn.textContent = "⏳ Calcul...";
+  const route = await fetchWalkingRoute(coords);
+  btn.textContent = "🧭 Suggérer une balade";
+
+  if (!route) return alert("Impossible de calculer l'itinéraire dans cette zone.");
+
+  // 5. Affichage du tracé sur la carte
+  if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+  
+  currentRouteLayer = L.geoJSON(route.geometry, {
+    style: { color: "#38bdf8", weight: 5, opacity: 0.9, dashArray: "10, 15", lineCap: "round" }
+  }).addTo(map);
+
+  // Animation sympa : on recule la caméra pour voir tout le trajet
+  map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50], animate: true });
+
+  // 6. Mise à jour de l'Interface
+  document.getElementById("route-btn").style.display = "none";
+  document.getElementById("route-info").style.display = "flex";
+  document.getElementById("route-dist").textContent = (route.distance / 1000).toFixed(1);
+  document.getElementById("route-time").textContent = Math.round(route.duration / 60);
+};
+
+window.clearRoute = () => {
+  if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+  currentRouteLayer = null;
+  document.getElementById("route-btn").style.display = "block";
+  document.getElementById("route-info").style.display = "none";
+  
+  // On recentre sur le joueur
+  if (lastGpsPos) map.setView([lastGpsPos.lat, lastGpsPos.lng], 16);
 };
 
 // --- 5. CALLBACK PRINCIPAL GPS ---
