@@ -18,42 +18,49 @@ const initMap = () => {
 };
 
 const map = initMap();
-
-// ➔ NOUVEAU : On initialise le brouillard géant par dessus la carte
 initFog(map);
-
 console.log("Tabi : Moteur cartographique et Brouillard initialisés.");
 
 // --- 2. GESTION DE L'UTILISATEUR ---
 let userMarker = null;
 
 const updateMapLocation = (lat, lng, accuracy) => {
-  // On dissipe le brouillard autour de la nouvelle position
+  // 1. On découpe le brouillard
   revealLocation(lat, lng);
 
+  // 2. On affiche le marqueur
   if (!userMarker) {
-    userMarker = L.circleMarker([lat, lng], {
-      radius: 8,
-      fillColor: "#2563eb",
-      color: "#ffffff",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 1
+    // En utilisant un L.marker avec divIcon, le HTML flottera TOUJOURS au dessus du brouillard SVG
+    userMarker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: '',
+        html: '<div class="user-dot"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      })
     }).addTo(map);
-    map.setView([lat, lng], 17);
+    
+    // On dézoome un peu (zoom 14) pour bien voir l'immense trou de 500m
+    map.setView([lat, lng], 14); 
   } else {
     userMarker.setLatLng([lat, lng]);
   }
-
-  // ➔ CRUCIAL : On force le marqueur à passer au-dessus du brouillard
-  userMarker.bringToFront();
 };
 
 const handleGPSError = (message) => {
-  console.error("Tabi GPS:", message);
+  console.warn("Tabi GPS:", message);
 };
 
-// --- 3. LANCEMENT DU GPS ---
+// --- TEST DE SECOURS ---
+// Fait apparaître un joueur virtuel à Paris après 1 seconde si le vrai GPS est long
+setTimeout(() => {
+  if (!userMarker) {
+    console.log("Simulation du GPS (Paris) pour tester le brouillard...");
+    updateMapLocation(48.8566, 2.3522, 10);
+  }
+}, 1000);
+
+// --- 3. LANCEMENT DU VRAI GPS ---
 initGPS(updateMapLocation, handleGPSError);
 
 // --- 4. PWA ---
@@ -62,5 +69,3 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
-// SIMULATION : Fait apparaître un joueur à Paris après 2 secondes pour tester le brouillard
-setTimeout(() => updateMapLocation(48.8566, 2.3522, 10), 2000);
