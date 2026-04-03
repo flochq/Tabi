@@ -2,7 +2,7 @@
 import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
-import { updateGachaDistance } from './gacha.js'; // ➔ Import du Gacha
+import { updateGachaDistance } from './gacha.js';
 import { fetchWalkingRoute } from './routing.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
@@ -32,11 +32,15 @@ let allKnownPOIs = [];
 let nearbyPOI = null;
 let cityBoundary = null;
 let cityArea = 0;
-let currentRouteLayer = null;
 
-// Variables du podomètre
+// ➔ NOUVEAU : Verrous de sécurité anti-spam
+let isFetchingCity = false;
+let isFetchingPOIs = false;
+
+// Variables du podomètre et routage
 let totalDistWalked = parseFloat(localStorage.getItem("tabi-dist")) || 0;
 let lastGpsPos = null;
+let currentRouteLayer = null;
 
 // --- RÉFÉRENCES DOM ---
 const cameraBtn = document.getElementById("camera-btn");
@@ -61,7 +65,7 @@ const updateStats = () => {
           pct = (exploredAreaKm2 / cityArea) * 100;
         }
       } catch (e) {
-        console.warn("Tabi : Erreur de calcul géospatial pour les stats", e);
+        // Ignorer les erreurs géométriques silencieuses
       }
     }
     
@@ -98,6 +102,9 @@ if (cameraTrigger && cameraInput) {
 
 // --- 4. GESTION DES MONUMENTS (POI) ---
 const loadMonuments = async (lat, lng) => {
+  if (isFetchingPOIs) return; // Sécurité : On bloque si déjà en cours
+  isFetchingPOIs = true;
+
   const pois = await fetchPOIs(lat, lng, 1000); 
   
   pois.forEach(poi => {
@@ -117,6 +124,8 @@ const loadMonuments = async (lat, lng) => {
       .addTo(map);
     }
   });
+
+  isFetchingPOIs = false; // On rouvre le verrou
 };
 
 const checkProximity = (userLat, userLng) => {
@@ -142,29 +151,23 @@ const checkProximity = (userLat, userLng) => {
   }
 };
 
-// --- LOGIQUE DU PLANIFICATEUR D'ITINÉRAIRES ---
+// --- 5. LOGIQUE DU PLANIFICATEUR D'ITINÉRAIRES ---
 window.suggestRoute = async () => {
   if (!lastGpsPos) return alert("📍 En attente du signal GPS, marchez un peu...");
 
-  // 1. Filtrer les monuments qui n'ont PAS encore été découverts
   const undiscovered = allKnownPOIs.filter(p => !discoveredPOIs.has(p.id));
   if (undiscovered.length === 0) {
     return alert("Bravo ! Vous avez découvert tous les monuments aux alentours. Éloignez-vous pour en charger de nouveaux.");
   }
 
-  // 2. Trier ces monuments par distance par rapport au joueur
   undiscovered.forEach(p => {
     p.distToUser = turf.distance([lastGpsPos.lng, lastGpsPos.lat], [p.lng, p.lat]);
   });
   undiscovered.sort((a, b) => a.distToUser - b.distToUser);
 
-  // 3. Sélectionner jusqu'à 3 monuments (les plus proches) pour faire un joli parcours
   const targets = undiscovered.slice(0, 3);
-  
-  // Format [longitude, latitude] pour l'API
   const coords = [[lastGpsPos.lng, lastGpsPos.lat], ...targets.map(t => [t.lng, t.lat])];
 
-  // 4. Appel de l'API de routage
   const btn = document.getElementById("route-btn");
   btn.textContent = "⏳ Calcul...";
   const route = await fetchWalkingRoute(coords);
@@ -172,24 +175,19 @@ window.suggestRoute = async () => {
 
   if (!route) return alert("Impossible de calculer l'itinéraire dans cette zone.");
 
-  // 5. Affichage du tracé sur la carte
   if (currentRouteLayer) map.removeLayer(currentRouteLayer);
   
   currentRouteLayer = L.geoJSON(route.geometry, {
     style: { color: "#38bdf8", weight: 5, opacity: 0.9, dashArray: "10, 15", lineCap: "round" }
   }).addTo(map);
 
-  // Animation sympa : on recule la caméra pour voir tout le trajet
   map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50], animate: true });
 
-// 6. Mise à jour de l'Interface
   document.getElementById("route-btn").style.display = "none";
   document.getElementById("route-info").style.display = "flex";
   
   const distanceKm = route.distance / 1000;
   document.getElementById("route-dist").textContent = distanceKm.toFixed(1);
-  
-  // Calcul manuel du temps : à 4 km/h, on met 15 minutes pour faire 1 km.
   const walkTimeMinutes = Math.round(distanceKm * 15);
   document.getElementById("route-time").textContent = walkTimeMinutes;
 };
@@ -200,32 +198,28 @@ window.clearRoute = () => {
   document.getElementById("route-btn").style.display = "block";
   document.getElementById("route-info").style.display = "none";
   
-  // On recentre sur le joueur
   if (lastGpsPos) map.setView([lastGpsPos.lat, lastGpsPos.lng], 16);
 };
 
-// --- 5. CALLBACK PRINCIPAL GPS ---
+// --- 6. CALLBACK PRINCIPAL GPS ---
 const updateMapLocation = (lat, lng, accuracy) => {
 
-  // A. LE PODOMÈTRE POUR LE GACHA
   if (lastGpsPos) {
     const distanceKm = turf.distance([lastGpsPos.lng, lastGpsPos.lat], [lng, lat], { units: 'kilometers' });
-    // On ignore les micro-tremblements du GPS (moins de 5 mètres)
     if (distanceKm > 0.005) {
       totalDistWalked += distanceKm;
       localStorage.setItem("tabi-dist", totalDistWalked.toString());
-      updateGachaDistance(totalDistWalked); // Synchronise l'UI du bouton
+      updateGachaDistance(totalDistWalked);
     }
   }
   lastGpsPos = { lat, lng };
 
-  // B. Révélation et proximité
   revealLocation(lat, lng);
   checkProximity(lat, lng);
 
-  // C. Mise à jour du marqueur joueur
   if (!userMarker) {
     userMarker = L.marker([lat, lng], {
+      zIndexOffset: 1000,
       icon: L.divIcon({
         className: '',
         html: '<div class="user-dot"></div>',
@@ -238,8 +232,9 @@ const updateMapLocation = (lat, lng, accuracy) => {
     userMarker.setLatLng([lat, lng]);
   }
 
-  // D. Récupération des frontières de la ville au premier fix
-  if (!cityBoundary) {
+  // ➔ NOUVEAU : Récupération protégée des frontières
+  if (!cityBoundary && !isFetchingCity) {
+    isFetchingCity = true; // On ferme le verrou
     fetchCityBoundary(lat, lng).then(data => {
       if (data) {
         cityBoundary = data;
@@ -253,11 +248,12 @@ const updateMapLocation = (lat, lng, accuracy) => {
         }).addTo(map);
         
         updateStats();
+      } else {
+        isFetchingCity = false; // Échec API : on rouvre le verrou pour retenter au prochain pas
       }
-    });
+    }).catch(() => isFetchingCity = false);
   }
 
-  // E. Téléchargement POI tous les 500m
   const currentLatLng = L.latLng(lat, lng);
   if (!lastFetchPos || lastFetchPos.distanceTo(currentLatLng) > 500) {
     lastFetchPos = currentLatLng;
@@ -267,7 +263,7 @@ const updateMapLocation = (lat, lng, accuracy) => {
   updateStats();
 };
 
-// --- 6. LANCEMENT ET PWA ---
+// --- 7. LANCEMENT ET PWA ---
 initGPS(updateMapLocation, (msg) => console.warn("GPS:", msg));
 
 if ("serviceWorker" in navigator) {
