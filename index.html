@@ -14,19 +14,38 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="css/styles.css?v=2">
+  <link rel="stylesheet" href="css/styles.css?v=5">
 </head>
 <body>
   <div id="map"></div>
 
-<div id="camera-btn" style="display: none;">
+  <div id="logo">
+    <h1>Tabi</h1>
+    <p>explorez l'inconnu</p>
+  </div>
+
+  <div id="gps-dot"></div>
+
+  <div id="stats">
+    <div class="stat-chip">
+      <span class="stat-val" id="stat-pois">0</span>
+      <span class="stat-lbl">découvertes</span>
+    </div>
+    <div class="stat-chip" id="stat-city-chip" style="display: none;">
+      <span class="stat-val" id="stat-coverage">0%</span>
+      <span class="stat-lbl" id="city-name">Ville</span>
+    </div>
+  </div>
+
+  <div id="camera-btn" style="display: none;">
     <button id="camera-trigger">📸 Photographier</button>
     <div id="camera-poi-name">Nom du monument</div>
   </div>
   
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" />
   
-  <script type="module" src="js/app.js?v=2"></script>
+  <script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>
