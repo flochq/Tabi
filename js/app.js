@@ -2,6 +2,7 @@
 import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
+import { updateGachaDistance } from './gacha.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
