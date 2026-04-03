@@ -182,11 +182,16 @@ window.suggestRoute = async () => {
   // Animation sympa : on recule la caméra pour voir tout le trajet
   map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50], animate: true });
 
-  // 6. Mise à jour de l'Interface
+// 6. Mise à jour de l'Interface
   document.getElementById("route-btn").style.display = "none";
   document.getElementById("route-info").style.display = "flex";
-  document.getElementById("route-dist").textContent = (route.distance / 1000).toFixed(1);
-  document.getElementById("route-time").textContent = Math.round(route.duration / 60);
+  
+  const distanceKm = route.distance / 1000;
+  document.getElementById("route-dist").textContent = distanceKm.toFixed(1);
+  
+  // Calcul manuel du temps : à 4 km/h, on met 15 minutes pour faire 1 km.
+  const walkTimeMinutes = Math.round(distanceKm * 15);
+  document.getElementById("route-time").textContent = walkTimeMinutes;
 };
 
 window.clearRoute = () => {
