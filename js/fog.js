@@ -1,30 +1,73 @@
 // js/fog.js
+import { saveFog, loadFog } from './storage.js';
 
-// On limite le monde à l'Europe de l'Ouest pour éviter les bugs géométriques aux Pôles
+const FOG_COLOR = "#0f172a";
+const FOG_OPACITY = 0.95;
+const REVEAL_RADIUS_KM = 0.05; // De retour à 50 mètres réels
+const CIRCLE_STEPS = 32;
+
+// Limite de sécurité pour éviter les calculs aux pôles
 const WORLD = turf.bboxPolygon([-6, 41, 10, 52]);
+
+let exploredArea = null;
 let fogLayer = null;
 
-export function initFog(map) {
-  // On dessine le monde entier en bleu nuit
-  fogLayer = L.geoJSON(WORLD, {
-    style: { fillColor: "#0f172a", fillOpacity: 0.95, stroke: false, interactive: false }
+// On rend l'initialisation asynchrone pour attendre la base de données
+export async function initFog(map) {
+  // 1. On charge la sauvegarde depuis IndexedDB
+  exploredArea = await loadFog();
+
+  // 2. On calcule le brouillard initial
+  let initialFog = WORLD;
+  if (exploredArea) {
+    try {
+      initialFog = turf.difference(WORLD, exploredArea);
+    } catch (e) {
+      console.warn("Erreur topologique, réinitialisation du brouillard.");
+      exploredArea = null;
+    }
+  }
+
+  // 3. On dessine sur la carte
+  fogLayer = L.geoJSON(initialFog, {
+    style: {
+      fillColor: FOG_COLOR,
+      fillOpacity: FOG_OPACITY,
+      color: "none",
+      weight: 0,
+      interactive: false
+    }
   }).addTo(map);
 }
 
 export function revealLocation(lat, lng) {
   if (!fogLayer) return;
 
+  const newCircle = turf.circle([lng, lat], REVEAL_RADIUS_KM, {
+    steps: CIRCLE_STEPS,
+    units: 'kilometers'
+  });
+
+  if (!exploredArea) {
+    exploredArea = newCircle;
+  } else {
+    try {
+      exploredArea = turf.union(exploredArea, newCircle);
+    } catch (e) {
+      console.warn("Erreur Turf union", e);
+      return;
+    }
+  }
+
   try {
-    // 1. On crée un cercle de 500m autour du joueur
-    const circle = turf.circle([lng, lat], 0.05, { steps: 32, units: 'kilometers' });
+    const currentFog = turf.difference(WORLD, exploredArea);
     
-    // 2. On découpe ce cercle du grand polygone WORLD
-    const currentFog = turf.difference(WORLD, circle);
-    
-    // 3. On met à jour l'affichage
     fogLayer.clearLayers();
     fogLayer.addData(currentFog || WORLD);
+
+    // ➔ NOUVEAU : Sauvegarde robuste et silencieuse en arrière-plan
+    saveFog(exploredArea);
   } catch (e) {
-    alert("Erreur de découpe du brouillard : " + e.message);
+    console.error("Erreur Turf difference", e);
   }
 }
