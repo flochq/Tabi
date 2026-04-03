@@ -4,7 +4,7 @@ import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from 
 import { fetchPOIs, fetchCityBoundary } from './api.js';
 import { updateGachaDistance } from './gacha.js';
 import { fetchWalkingRoute } from './routing.js';
-import { initMissions, updateMissionProgress } from './missions.js';
+import { initMissions, updateMissionProgress } from './missions.js'; // ➔ NOUVEL IMPORT
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
@@ -23,6 +23,7 @@ const initMap = () => {
 
 const map = initMap();
 initFog(map);
+initMissions(); // ➔ Démarrage des missions quotidiennes
 
 // --- VARIABLES D'ÉTAT GLOBALES ---
 let userMarker = null;
@@ -34,7 +35,7 @@ let nearbyPOI = null;
 let cityBoundary = null;
 let cityArea = 0;
 
-// ➔ NOUVEAU : Verrous de sécurité anti-spam
+// Verrous de sécurité anti-spam
 let isFetchingCity = false;
 let isFetchingPOIs = false;
 
@@ -61,9 +62,12 @@ const updateStats = () => {
         if (intersection) {
           const exploredAreaKm2 = turf.area(intersection) / 1e6;
           pct = (exploredAreaKm2 / cityArea) * 100;
+          
+          // ➔ NOUVEAU : Met à jour la mission "Découvrir X% de la ville"
+          updateMissionProgress('coverage', pct, true); 
         }
       } catch (e) {
-        // Ignorer les erreurs
+        // Ignorer les erreurs géométriques silencieuses
       }
     }
     
@@ -83,6 +87,9 @@ if (cameraTrigger && cameraInput) {
   cameraInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file || !nearbyPOI) return;
+
+    // ➔ NOUVEAU : Valide la mission "Prendre un monument en photo"
+    updateMissionProgress('photo', 1);
 
     discoveredPOIs.add(nearbyPOI.id);
     revealMassiveLocation(nearbyPOI.lat, nearbyPOI.lng);
@@ -105,10 +112,9 @@ const loadMonuments = async (lat, lng) => {
 
   const pois = await fetchPOIs(lat, lng, 1000); 
   
-  // Si l'API échoue ou ne renvoie rien (ex: blocage temporaire), on annule
   if (!pois || pois.length === 0) {
     isFetchingPOIs = false;
-    lastFetchPos = null; // ➔ CRUCIAL : On force l'app à retenter la prochaine fois
+    lastFetchPos = null; // En cas d'erreur réseau, on force la tentative au prochain pas
     return;
   }
 
@@ -130,7 +136,6 @@ const loadMonuments = async (lat, lng) => {
     }
   });
 
-  // ➔ NOUVEAU : On valide la position de recherche uniquement après un succès confirmé !
   lastFetchPos = L.latLng(lat, lng);
   isFetchingPOIs = false; 
 };
@@ -175,7 +180,6 @@ window.suggestRoute = async () => {
   const targets = undiscovered.slice(0, 3);
   const coords = [[lastGpsPos.lng, lastGpsPos.lat], ...targets.map(t => [t.lng, t.lat])];
 
-  // Feedback visuel sur le bouton de la Nav Bar
   const navIcon = document.getElementById("route-nav-icon");
   const navLabel = document.getElementById("route-nav-label");
   if(navIcon) navIcon.textContent = "⏳";
@@ -196,12 +200,11 @@ window.suggestRoute = async () => {
 
   map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50], animate: true });
 
-  // Affichage de la pilule flottante avec le temps
   document.getElementById("route-info").style.display = "flex";
   
   const distanceKm = route.distance / 1000;
   document.getElementById("route-dist").textContent = distanceKm.toFixed(1);
-  const walkTimeMinutes = Math.round(distanceKm * 15);
+  const walkTimeMinutes = Math.round(distanceKm * 15); // Calcul à 4km/h
   document.getElementById("route-time").textContent = walkTimeMinutes;
 };
 
@@ -219,6 +222,10 @@ const updateMapLocation = (lat, lng, accuracy) => {
     const distanceKm = turf.distance([lastGpsPos.lng, lastGpsPos.lat], [lng, lat], { units: 'kilometers' });
     if (distanceKm > 0.005) {
       totalDistWalked += distanceKm;
+      
+      // ➔ NOUVEAU : Met à jour la mission "Marcher X km"
+      updateMissionProgress('distance', distanceKm);
+      
       localStorage.setItem("tabi-dist", totalDistWalked.toString());
       updateGachaDistance(totalDistWalked);
     }
@@ -243,16 +250,16 @@ const updateMapLocation = (lat, lng, accuracy) => {
     userMarker.setLatLng([lat, lng]);
   }
 
-  // ➔ NOUVEAU : Récupération protégée des frontières
+  // Récupération protégée des frontières
   if (!cityBoundary && !isFetchingCity) {
-    isFetchingCity = true; // On ferme le verrou
+    isFetchingCity = true;
     fetchCityBoundary(lat, lng).then(data => {
       if (data) {
         cityBoundary = data;
         cityArea = data.area;
         
-        document.getElementById("city-name").textContent = data.name;
-        document.getElementById("stat-city-chip").style.display = "flex";
+        const cityNameEl = document.getElementById("city-name");
+        if (cityNameEl) cityNameEl.textContent = data.name;
 
         L.geoJSON(data.polygon, {
           style: { color: "#2563eb", weight: 2.5, fillOpacity: 0, dashArray: "8,5" }
@@ -260,15 +267,13 @@ const updateMapLocation = (lat, lng, accuracy) => {
         
         updateStats();
       } else {
-        isFetchingCity = false; // Échec API : on rouvre le verrou pour retenter au prochain pas
+        isFetchingCity = false;
       }
     }).catch(() => isFetchingCity = false);
   }
 
-// E. Téléchargement POI tous les 500m
   const currentLatLng = L.latLng(lat, lng);
   if (!lastFetchPos || lastFetchPos.distanceTo(currentLatLng) > 500) {
-    // C'est désormais la fonction loadMonuments qui validera la position en cas de succès
     loadMonuments(lat, lng);
   }
 
