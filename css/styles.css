@@ -26,6 +26,31 @@ body, html {
 }
 /* Effet organique sur le brouillard de guerre */
 .fog-layer {
-  filter: blur(15px); /* Tu pourras ajuster cette valeur entre 10px et 25px selon tes goûts */
+  filter: blur(25px); /* Tu pourras ajuster cette valeur entre 10px et 25px selon tes goûts */
   transition: d 0.5s ease; /* Bonus : rendra la dissipation plus fluide quand tu marches */
+}
+
+/* --- Monuments (POIs) --- */
+.poi-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(37, 99, 235, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transition: transform 0.2s;
+}
+
+/* Petite animation quand le point apparaît */
+.poi-dot {
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
 }
