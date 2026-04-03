@@ -102,3 +102,5 @@ export function revealMassiveLocation(lat, lng) {
     console.error("Erreur Turf difference massive", e);
   }
 }
+
+export const getExploredArea = () => exploredArea;
