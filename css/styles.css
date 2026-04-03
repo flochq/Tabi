@@ -24,3 +24,8 @@ body, html {
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
+/* Effet organique sur le brouillard de guerre */
+.fog-layer {
+  filter: blur(15px); /* Tu pourras ajuster cette valeur entre 10px et 25px selon tes goûts */
+  transition: d 0.5s ease; /* Bonus : rendra la dissipation plus fluide quand tu marches */
+}
