@@ -50,9 +50,6 @@ const cameraPoiName = document.getElementById("camera-poi-name");
 
 // --- 2. LOGIQUE DES STATISTIQUES ---
 const updateStats = () => {
-  const statPois = document.getElementById("stat-pois");
-  if (statPois) statPois.textContent = discoveredPOIs.size;
-
   if (cityBoundary) {
     const explored = getExploredArea();
     let pct = 0;
@@ -65,7 +62,7 @@ const updateStats = () => {
           pct = (exploredAreaKm2 / cityArea) * 100;
         }
       } catch (e) {
-        // Ignorer les erreurs géométriques silencieuses
+        // Ignorer les erreurs
       }
     }
     
@@ -157,7 +154,7 @@ window.suggestRoute = async () => {
 
   const undiscovered = allKnownPOIs.filter(p => !discoveredPOIs.has(p.id));
   if (undiscovered.length === 0) {
-    return alert("Bravo ! Vous avez découvert tous les monuments aux alentours. Éloignez-vous pour en charger de nouveaux.");
+    return alert("Vous avez découvert tous les monuments aux alentours. Éloignez-vous pour en charger de nouveaux.");
   }
 
   undiscovered.forEach(p => {
@@ -168,10 +165,16 @@ window.suggestRoute = async () => {
   const targets = undiscovered.slice(0, 3);
   const coords = [[lastGpsPos.lng, lastGpsPos.lat], ...targets.map(t => [t.lng, t.lat])];
 
-  const btn = document.getElementById("route-btn");
-  btn.textContent = "⏳ Calcul...";
+  // Feedback visuel sur le bouton de la Nav Bar
+  const navIcon = document.getElementById("route-nav-icon");
+  const navLabel = document.getElementById("route-nav-label");
+  if(navIcon) navIcon.textContent = "⏳";
+  if(navLabel) navLabel.textContent = "Calcul...";
+  
   const route = await fetchWalkingRoute(coords);
-  btn.textContent = "🧭 Suggérer une balade";
+  
+  if(navIcon) navIcon.textContent = "🧭";
+  if(navLabel) navLabel.textContent = "Balade";
 
   if (!route) return alert("Impossible de calculer l'itinéraire dans cette zone.");
 
@@ -183,7 +186,7 @@ window.suggestRoute = async () => {
 
   map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50], animate: true });
 
-  document.getElementById("route-btn").style.display = "none";
+  // Affichage de la pilule flottante avec le temps
   document.getElementById("route-info").style.display = "flex";
   
   const distanceKm = route.distance / 1000;
@@ -195,9 +198,7 @@ window.suggestRoute = async () => {
 window.clearRoute = () => {
   if (currentRouteLayer) map.removeLayer(currentRouteLayer);
   currentRouteLayer = null;
-  document.getElementById("route-btn").style.display = "block";
   document.getElementById("route-info").style.display = "none";
-  
   if (lastGpsPos) map.setView([lastGpsPos.lat, lastGpsPos.lng], 16);
 };
 
