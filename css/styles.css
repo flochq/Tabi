@@ -61,7 +61,7 @@ body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0f1
 #route-info {
   position: absolute;
   /* ➔ NOUVEAU : On passe de 85px à 75px */
-  bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(55px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
@@ -82,7 +82,7 @@ body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0f1
 #camera-btn { 
   position: absolute; 
   /* ➔ NOUVEAU : On passe de 85px à 75px */
-  bottom: calc(75px + env(safe-area-inset-bottom, 0px)); 
+  bottom: calc(55px + env(safe-area-inset-bottom, 0px)); 
   left: 50%; 
   transform: translateX(-50%); 
   z-index: 1000; 
