@@ -67,29 +67,32 @@ function rollRarity() {
 
 function buildCard(city, large = true) {
   const popStr = city.pop >= 1000000 ? (city.pop/1000000).toFixed(1)+"M hab." : Math.round(city.pop/1000)+"k hab.";
-  const visual = CITY_VISUALS[city.name] || CITY_VISUALS["Paris"]; // Securité
+  const visual = CITY_VISUALS[city.name] || CITY_VISUALS["Paris"]; 
   const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
-  const c = rc.accent;
+  const c = rc.accent; // On utilise la couleur d'accentuation (néon)
 
   if (!large) {
     return `<div class="gacha-mini ${city.rarity}" title="${city.name}" style="position:relative;overflow:hidden;">
-      <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
-      <svg viewBox="0 0 100 55" style="width:52px;height:30px;display:block;margin:0 auto;">${visual.svg(c)}</svg>
+      <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
+      <div class="gacha-mini-emoji">${city.emoji}</div>
       <div class="gacha-mini-name">${city.name}</div>
     </div>`;
   }
 
   return `<div class="gacha-card ${city.rarity}">
-    <span class="gacha-card-badge">${RARITY_STARS[city.rarity]} ${RARITY_LABELS[city.rarity]}</span>
-    <div style="position:relative;width:100%;height:120px;overflow:hidden;border-radius:10px;margin-bottom:10px;background:${rc.card};display:flex;align-items:flex-end;justify-content:center;">
-      <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.2;"><path d="${visual.sil}" fill="${c}"/></svg>
-      <svg viewBox="0 0 100 55" style="width:180px;height:98px;position:relative;z-index:1;">${visual.svg(c)}</svg>
+    <div class="gacha-card-rarity">
+      <span>${RARITY_LABELS[city.rarity]}</span>
+      <span>${RARITY_STARS[city.rarity]}</span>
+    </div>
+    <div style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:12px;margin-bottom:16px;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:center;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5);">
+      <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
+      <svg viewBox="0 0 100 55" style="width:190px;height:104px;position:relative;z-index:1;filter:drop-shadow(0 0 8px ${c});">${visual.svg(c)}</svg>
     </div>
     <div class="gacha-card-name">${city.name}</div>
     <div class="gacha-card-region">${city.region}</div>
-    <div style="border-top:1px solid rgba(0,0,0,0.1);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
-      <div class="gacha-card-stat" style="display:block;"><span style="font-size:1rem;">${city.emoji}</span><span style="margin-left:4px;">${popStr}</span></div>
-      <div style="font-size:0.5rem;font-family:'Space Mono',monospace;opacity:0.4;letter-spacing:0.12em;">TABI</div>
+    <div class="gacha-card-stat">
+      <span><span style="font-size:1.1rem;vertical-align:middle;margin-right:6px;">${city.emoji}</span>${popStr}</span>
+      <span style="opacity:0.4;align-self:flex-end;">DATA//TABI</span>
     </div>
   </div>`;
 }
@@ -213,12 +216,15 @@ function drawGlobeFrame() {
     }
   }
 
-  // Océan
+  // Océan : Fond spatial profond
   ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.clip();
-  ctx.fillStyle = '#080f2e'; ctx.fillRect(0,0,W,W);
+  ctx.fillStyle = '#020617'; ctx.fillRect(0,0,W,W);
 
-  // Terres
-  ctx.fillStyle='#1e5c33';
+  // Terres : Effet filaire holographique cyan
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'; // Néon bleu
+  ctx.lineWidth = 1.2;
+  
   for(const poly of LAND_POLYS){
     ctx.beginPath();
     let first = true;
@@ -230,11 +236,18 @@ function drawGlobeFrame() {
       } else { first = true; }
     }
     ctx.fill();
+    ctx.stroke();
   }
+
+  // Ajout d'un voile lumineux sur le globe (effet atmosphère)
+  const grad = ctx.createRadialGradient(CX, CY, R*0.5, CX, CY, R);
+  grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+  grad.addColorStop(1, 'rgba(56, 189, 248, 0.15)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,W);
 
   ctx.restore();
 }
-
 function globeLoop() {
   const gs = globeState;
   if(gs.phase==='idle'){
