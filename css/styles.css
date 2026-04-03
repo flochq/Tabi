@@ -103,3 +103,41 @@ body, html {
   display: inline-block;
   font-weight: bold;
 }
+
+/* --- Statistiques --- */
+#stats { 
+  position: absolute; 
+  bottom: 20px; 
+  left: 16px; 
+  z-index: 1000; 
+  display: flex; 
+  gap: 8px; 
+  flex-wrap: wrap; 
+  max-width: calc(100vw - 32px); 
+}
+.stat-chip { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  padding: 8px 14px; 
+  border-radius: 10px; 
+  border: 1px solid rgba(0,0,0,0.08); 
+  background: rgba(255,255,255,0.92); 
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.stat-val { 
+  font-family: 'Syne', sans-serif; 
+  font-weight: 700; 
+  font-size: 1.05rem; 
+  color: #1e293b; 
+  line-height: 1; 
+}
+.stat-lbl { 
+  font-family: 'Space Mono', monospace; 
+  font-size: 0.55rem; 
+  color: #64748b; 
+  letter-spacing: 0.1em; 
+  text-transform: uppercase; 
+  margin-top: 3px; 
+}
