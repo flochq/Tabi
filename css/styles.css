@@ -1,229 +1,124 @@
 /* =========================================
    1. BASE & RESET
 ========================================= */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body, html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background-color: #0f172a;
-  font-family: 'Space Mono', monospace;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0f172a; font-family: 'Space Mono', monospace; }
+#map { width: 100%; height: 100%; z-index: 1; }
 
 /* =========================================
-   2. BROUILLARD & CARTE
+   2. BROUILLARD, CARTE & JOUEUR
 ========================================= */
-.fog-layer {
-  filter: blur(15px);
-  transition: d 0.5s ease;
-}
+.fog-layer { filter: blur(15px); transition: d 0.5s ease; }
+#gps-dot { position: absolute; top: calc(env(safe-area-inset-top, 20px) + 24px); right: 16px; z-index: 1000; width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+#gps-dot.active { background: #2563eb; animation: pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.6); } 70% { box-shadow: 0 0 0 8px rgba(37,99,235,0); } 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } }
+.user-dot { width: 16px; height: 16px; border-radius: 50%; background: #0ea5e9; border: 2px solid #fff; animation: pulse-user 2s infinite; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+@keyframes pulse-user { 0% { box-shadow: 0 0 0 0 rgba(14,165,233,0.6); } 70% { box-shadow: 0 0 0 16px rgba(14,165,233,0); } 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); } }
 
-/* =========================================
-   3. UI : JOUER & GPS
-========================================= */
-#gps-dot { 
-  position: absolute; 
-  /* S'adapte à l'encoche de l'iPhone */
-  top: calc(env(safe-area-inset-top, 20px) + 24px); 
-  right: 16px; 
-  z-index: 1000; 
-  width: 10px; 
-  height: 10px; 
-  border-radius: 50%; 
-  background: #64748b; 
-}
-#gps-dot.active { 
-  background: #2563eb; 
-  animation: pulse-dot 2s infinite; 
-}
-
-@keyframes pulse-dot { 
-  0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.6); } 
-  70% { box-shadow: 0 0 0 8px rgba(37,99,235,0); } 
-  100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } 
-}
-
-.user-dot { 
-  width: 16px; 
-  height: 16px; 
-  border-radius: 50%; 
-  background: #0ea5e9; 
-  border: 2px solid #fff; 
-  animation: pulse-user 2s infinite; 
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-@keyframes pulse-user { 
-  0% { box-shadow: 0 0 0 0 rgba(14,165,233,0.6); } 
-  70% { box-shadow: 0 0 0 16px rgba(14,165,233,0); } 
-  100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); } 
-}
-
-#logo {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 20px) + 16px);
-  left: 16px;
-  z-index: 1000;
-  pointer-events: none;
-}
+#logo { position: absolute; top: calc(env(safe-area-inset-top, 20px) + 16px); left: 16px; z-index: 1000; pointer-events: none; }
 #logo h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 #logo p { font-size: 0.6rem; color: #cbd5e1; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-top: 2px; }
 
-
 /* =========================================
-   4. UI : STATISTIQUES
+   3. BOTTOM NAVIGATION BAR
 ========================================= */
-#stats { 
-  position: absolute; 
-  bottom: 20px; 
-  left: 16px; 
-  z-index: 1000; 
-  display: flex; 
-  gap: 8px; 
-  flex-wrap: wrap; 
-  max-width: calc(100vw - 32px); 
-}
-.stat-chip { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  padding: 8px 14px; 
-  border-radius: 10px; 
-  border: 1px solid rgba(0,0,0,0.08); 
-  background: rgba(255,255,255,0.92); 
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.stat-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; color: #1e293b; line-height: 1; }
-.stat-lbl { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
-
-
-/* =========================================
-   5. MONUMENTS & APPAREIL PHOTO
-========================================= */
-.poi-dot { 
-  width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); border: 1.5px solid rgba(37, 99, 235, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: transform 0.2s; 
-  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
-}
-.poi-dot.discovered { border-color: #fbbf24; background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 12px rgba(251, 191, 36, 0.4); }
-@keyframes pop-in { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-
-#camera-btn { position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%); z-index: 1000; text-align: center; }
-#camera-trigger { display: flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 30px; background: #2563eb; color: #fff; font-family: "Space Mono", monospace; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.5); transition: transform 0.1s; }
-#camera-trigger:active { transform: scale(0.95); }
-#camera-poi-name { font-family: "Space Mono", monospace; font-size: 0.65rem; color: #1e293b; margin-top: 8px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 12px; display: inline-block; font-weight: bold; }
-
-
-/* =========================================
-   6. GACHA & CARTES (Holographique)
-========================================= */
-@keyframes hologram-glare { 
-  0% { transform: translateX(-150%) skewX(-45deg); opacity: 0; } 
-  50% { opacity: 0.2; } 
-  100% { transform: translateX(150%) skewX(-45deg); opacity: 0; } 
-}
-@keyframes pulse-legendary { 
-  0%, 100% { box-shadow: 0 0 30px rgba(217, 70, 239, 0.4), inset 0 0 0 2px rgba(217, 70, 239, 0.8); } 
-  50% { box-shadow: 0 0 50px rgba(217, 70, 239, 0.8), inset 0 0 0 3px rgba(217, 70, 239, 1); } 
-}
-
-.gacha-card { 
-  border-radius: 18px; padding: 20px; width: 240px; position: relative; overflow: hidden; 
-  background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(20px); color: #f8fafc; font-family: 'Syne', sans-serif; cursor: pointer; box-shadow: 0 20px 40px rgba(0,0,0,0.5); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-}
-.gacha-card::after { 
-  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); animation: hologram-glare 3s infinite; pointer-events: none; 
-}
-.gacha-card.common { border: 1px solid rgba(148, 163, 184, 0.3); box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.5); }
-.gacha-card.rare { border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.6), 0 0 20px rgba(56, 189, 248, 0.2); }
-.gacha-card.epic { border: 1px solid rgba(250, 204, 21, 0.3); box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.7), 0 0 30px rgba(250, 204, 21, 0.3); }
-.gacha-card.legendary { border: 1px solid rgba(217, 70, 239, 0.5); animation: pulse-legendary 2s infinite; background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(74,4,78,0.6)); }
-
-.gacha-card-rarity { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 12px; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; }
-.gacha-card-name { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: 0.05em; }
-.gacha-card-region { font-size: 0.65rem; color: #94a3b8; font-family: 'Space Mono', monospace; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
-.gacha-card-stat { font-size: 0.65rem; font-family: 'Space Mono', monospace; color: #cbd5e1; display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
-
-#collection-screen { background: rgba(8, 13, 31, 0.95) !important; color: #fff !important; }
-#collection-screen h2 { color: #fff !important; }
-
-.gacha-mini { border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
-.gacha-mini:hover { transform: translateY(-4px) scale(1.05); }
-.gacha-mini.common { border: 1px solid rgba(148, 163, 184, 0.4); }
-.gacha-mini.rare { border: 1px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15); }
-.gacha-mini.epic { border: 1px solid rgba(250, 204, 21, 0.6); box-shadow: 0 4px 12px rgba(250, 204, 21, 0.2); }
-.gacha-mini.legendary { border: 1px solid rgba(217, 70, 239, 0.8); box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3); }
-.gacha-mini-emoji { font-size: 1.6rem; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-.gacha-mini-name { font-size: 0.55rem; font-family: 'Space Mono', monospace; color: #e2e8f0; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-
-/* =========================================
-   7. CORRECTIONS IOS (Encoche / Dynamic Island)
-========================================= */
-
-/* On décale le bouton des tirages pour qu'il soit bien sous le logo */
-#gacha-btns {
-  top: calc(env(safe-area-inset-top, 20px) + 70px) !important;
-}
-
-/* On ajoute un padding dynamique (encoche) + 20px sur la barre du haut (Titre + Croix) des modales Gacha */
-#draw-screen > div:first-child,
-#collection-screen > div:first-child {
-  padding-top: calc(env(safe-area-inset-top, 20px) + 20px) !important;
-}
-
-/* =========================================
-   8. PLANIFICATEUR D'ITINÉRAIRES
-========================================= */
-#route-btn {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 20px) + 150px); /* Se place sous le menu Gacha */
-  left: 16px;
-  z-index: 1000;
+#bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
   background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  padding: 10px 18px;
-  border-radius: 20px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: all 0.2s;
+  backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 1050;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
 }
-#route-btn:active { transform: scale(0.95); }
 
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-family: 'Space Mono', monospace;
+  gap: 6px;
+  cursor: pointer;
+  flex: 1;
+  transition: transform 0.1s, color 0.2s;
+}
+
+.nav-item:active { transform: scale(0.95); }
+.nav-icon { font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 800; }
+.nav-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* =========================================
+   4. ELEMENTS FLOTTANTS (Juste au-dessus de la nav)
+========================================= */
 #route-info {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 20px) + 150px);
-  left: 16px;
+  bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
   background: linear-gradient(135deg, rgba(14, 165, 233, 0.95), rgba(37, 99, 235, 0.95));
   backdrop-filter: blur(8px);
   color: #fff;
-  padding: 10px 18px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 30px;
   font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: bold;
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
 }
+
+#camera-btn { 
+  position: absolute; 
+  bottom: calc(85px + env(safe-area-inset-bottom, 0px)); 
+  left: 50%; 
+  transform: translateX(-50%); 
+  z-index: 1000; 
+  text-align: center; 
+}
+#camera-trigger { display: flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 30px; background: #2563eb; color: #fff; font-family: "Space Mono", monospace; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(37,99,235,0.5); transition: transform 0.1s; }
+#camera-trigger:active { transform: scale(0.95); }
+#camera-poi-name { font-family: "Space Mono", monospace; font-size: 0.65rem; color: #1e293b; margin-top: 8px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 12px; display: inline-block; font-weight: bold; }
+
+/* =========================================
+   5. MONUMENTS (POI)
+========================================= */
+.poi-dot { width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); border: 1.5px solid rgba(37, 99, 235, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.15); animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.poi-dot.discovered { border-color: #fbbf24; background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 12px rgba(251, 191, 36, 0.4); }
+@keyframes pop-in { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+/* =========================================
+   6. GACHA & CARTES (Holographique)
+========================================= */
+@keyframes pulse-legendary { 0%, 100% { box-shadow: 0 0 30px rgba(217, 70, 239, 0.4), inset 0 0 0 2px rgba(217, 70, 239, 0.8); } 50% { box-shadow: 0 0 50px rgba(217, 70, 239, 0.8), inset 0 0 0 3px rgba(217, 70, 239, 1); } }
+.gacha-card { border-radius: 18px; padding: 20px; width: 240px; position: relative; overflow: hidden; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(20px); color: #f8fafc; font-family: 'Syne', sans-serif; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+.gacha-card.common { border: 1px solid rgba(148, 163, 184, 0.3); box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.5); }
+.gacha-card.rare { border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.6), 0 0 20px rgba(56, 189, 248, 0.2); }
+.gacha-card.epic { border: 1px solid rgba(250, 204, 21, 0.3); box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.7), 0 0 30px rgba(250, 204, 21, 0.3); }
+.gacha-card.legendary { border: 1px solid rgba(217, 70, 239, 0.5); animation: pulse-legendary 2s infinite; background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(74,4,78,0.6)); }
+.gacha-card-rarity { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 12px; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; }
+.gacha-card-name { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: 0.05em; }
+.gacha-card-region { font-size: 0.65rem; color: #94a3b8; font-family: 'Space Mono', monospace; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
+.gacha-card-stat { font-size: 0.65rem; font-family: 'Space Mono', monospace; color: #cbd5e1; display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+.gacha-mini { border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+.gacha-mini.common { border: 1px solid rgba(148, 163, 184, 0.4); }
+.gacha-mini.rare { border: 1px solid rgba(56, 189, 248, 0.5); }
+.gacha-mini.epic { border: 1px solid rgba(250, 204, 21, 0.6); }
+.gacha-mini.legendary { border: 1px solid rgba(217, 70, 239, 0.8); }
+.gacha-mini-emoji { font-size: 1.6rem; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.gacha-mini-name { font-size: 0.55rem; font-family: 'Space Mono', monospace; color: #e2e8f0; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Corrections encoches modales Gacha */
+#draw-screen > div:first-child, #collection-screen > div:first-child { padding-top: calc(env(safe-area-inset-top, 20px) + 20px) !important; }
