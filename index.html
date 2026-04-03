@@ -20,6 +20,13 @@
 <body>
   <div id="map"></div>
 
+<div id="camera-btn" style="display: none;">
+    <button id="camera-trigger">📸 Photographier</button>
+    <div id="camera-poi-name">Nom du monument</div>
+  </div>
+  
+  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" />
+  
   <script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>
