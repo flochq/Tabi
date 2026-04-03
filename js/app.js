@@ -2,7 +2,7 @@
 import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
-import { updateGachaDistance } from './gacha.js';
+import { updateGachaDistance } from './gacha.js'; // ➔ Import du Gacha
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
@@ -20,9 +20,9 @@ const initMap = () => {
 };
 
 const map = initMap();
-initFog(map); // Initialise le brouillard (charge IndexedDB)
+initFog(map);
 
-// --- VARIABLES D'ÉTAT ---
+// --- VARIABLES D'ÉTAT GLOBALES ---
 let userMarker = null;
 let lastFetchPos = null;
 const loadedPOIs = new Set();
@@ -32,6 +32,10 @@ let nearbyPOI = null;
 let cityBoundary = null;
 let cityArea = 0;
 
+// Variables du podomètre
+let totalDistWalked = parseFloat(localStorage.getItem("tabi-dist")) || 0;
+let lastGpsPos = null;
+
 // --- RÉFÉRENCES DOM ---
 const cameraBtn = document.getElementById("camera-btn");
 const cameraTrigger = document.getElementById("camera-trigger");
@@ -40,11 +44,9 @@ const cameraPoiName = document.getElementById("camera-poi-name");
 
 // --- 2. LOGIQUE DES STATISTIQUES ---
 const updateStats = () => {
-  // Mise à jour du compteur de monuments
   const statPois = document.getElementById("stat-pois");
   if (statPois) statPois.textContent = discoveredPOIs.size;
 
-  // Calcul du % de ville découverte
   if (cityBoundary) {
     const explored = getExploredArea();
     let pct = 0;
@@ -78,7 +80,6 @@ if (cameraTrigger && cameraInput) {
     const file = e.target.files[0];
     if (!file || !nearbyPOI) return;
 
-    // Marquer comme découvert et explosion du brouillard (350m)
     discoveredPOIs.add(nearbyPOI.id);
     revealMassiveLocation(nearbyPOI.lat, nearbyPOI.lng);
     
@@ -141,13 +142,24 @@ const checkProximity = (userLat, userLng) => {
 
 // --- 5. CALLBACK PRINCIPAL GPS ---
 const updateMapLocation = (lat, lng, accuracy) => {
-  // Dissipation du brouillard
+
+  // A. LE PODOMÈTRE POUR LE GACHA
+  if (lastGpsPos) {
+    const distanceKm = turf.distance([lastGpsPos.lng, lastGpsPos.lat], [lng, lat], { units: 'kilometers' });
+    // On ignore les micro-tremblements du GPS (moins de 5 mètres)
+    if (distanceKm > 0.005) {
+      totalDistWalked += distanceKm;
+      localStorage.setItem("tabi-dist", totalDistWalked.toString());
+      updateGachaDistance(totalDistWalked); // Synchronise l'UI du bouton
+    }
+  }
+  lastGpsPos = { lat, lng };
+
+  // B. Révélation et proximité
   revealLocation(lat, lng);
-  
-  // Vérification proximité monuments
   checkProximity(lat, lng);
 
-  // Mise à jour du marqueur joueur
+  // C. Mise à jour du marqueur joueur
   if (!userMarker) {
     userMarker = L.marker([lat, lng], {
       icon: L.divIcon({
@@ -162,7 +174,7 @@ const updateMapLocation = (lat, lng, accuracy) => {
     userMarker.setLatLng([lat, lng]);
   }
 
-  // Récupération des frontières de la ville au premier fix
+  // D. Récupération des frontières de la ville au premier fix
   if (!cityBoundary) {
     fetchCityBoundary(lat, lng).then(data => {
       if (data) {
@@ -181,7 +193,7 @@ const updateMapLocation = (lat, lng, accuracy) => {
     });
   }
 
-  // Téléchargement POI tous les 500m
+  // E. Téléchargement POI tous les 500m
   const currentLatLng = L.latLng(lat, lng);
   if (!lastFetchPos || lastFetchPos.distanceTo(currentLatLng) > 500) {
     lastFetchPos = currentLatLng;
