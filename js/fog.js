@@ -7,7 +7,7 @@ let fogLayer = null;
 export function initFog(map) {
   // On dessine le monde entier en bleu nuit
   fogLayer = L.geoJSON(WORLD, {
-    style: { fillColor: "#0f172a", fillOpacity: 0.85, stroke: false, interactive: false }
+    style: { fillColor: "#0f172a", fillOpacity: 0.95, stroke: false, interactive: false }
   }).addTo(map);
 }
 
@@ -16,7 +16,7 @@ export function revealLocation(lat, lng) {
 
   try {
     // 1. On crée un cercle de 500m autour du joueur
-    const circle = turf.circle([lng, lat], 0.5, { steps: 32, units: 'kilometers' });
+    const circle = turf.circle([lng, lat], 0.05, { steps: 32, units: 'kilometers' });
     
     // 2. On découpe ce cercle du grand polygone WORLD
     const currentFog = turf.difference(WORLD, circle);
