@@ -1,13 +1,13 @@
 // js/gacha.js
 import { CITY_VISUALS, RARITY_COLORS, RARITY_WEIGHTS, RARITY_LABELS, RARITY_STARS, GACHA_CITIES, LAND_POLYS } from './data.js';
 
-// --- 1. PODOMÈTRE GACHA ---
+// --- PODOMÈTRE GACHA ---
 export function updateGachaDistance(totalDist) {
   const gachaKey = "tabi-gacha-v1";
   let state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, lastDist: 0, collection: [] };
   
   const diff = totalDist - state.lastDist;
-  if (diff >= 1) { 
+  if (diff >= 1) { // 1 tirage par kilomètre
     const earned = Math.floor(diff);
     state.draws += earned;
     state.lastDist += earned;
@@ -20,7 +20,7 @@ export function updateGachaDistance(totalDist) {
   }
 }
 
-// --- 2. CONVERTISSEUR GEOJSON -> SVG PATH ---
+// --- CONVERTISSEUR GEOJSON -> SVG ---
 export function geoJsonToSvgPath(geoJson) {
   if (!geoJson || !geoJson.coordinates) return null;
   
@@ -60,73 +60,64 @@ export function geoJsonToSvgPath(geoJson) {
   return pathStr;
 }
 
-// --- 3. GÉNÉRATEUR DE CARTES SÉCURISÉ (DESIGN DATAPAD) ---
-export function buildCard(city, large = true, count = 1) {
-  try {
-    let dynamicPath = city.svgPath;
-    if (!dynamicPath && city.polygon) {
-      dynamicPath = geoJsonToSvgPath(city.polygon);
-    }
-    
-    const visual = dynamicPath 
-      ? { sil: dynamicPath, svg: (c) => `<path d="${dynamicPath}" fill="${c}"/>` }
-      : (CITY_VISUALS[city.name] || { sil: "M20 20 L80 20 L80 40 L20 40 Z", svg: (c) => `<path d="M20 20 L80 20 L80 40 L20 40 Z" fill="${c}"/>` });
-
-    const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
-    const c = rc.accent; 
-
-    if (!large) {
-      const countHtml = count > 1 ? `<div class="gacha-mini-count">x${count}</div>` : '';
-      const safeName = city.name ? city.name.replace(/'/g, "\\'") : '';
-      
-      return `<div class="gacha-mini ${city.rarity || 'common'}" title="${city.name || 'Inconnu'}" onclick="viewCollectionCard('${safeName}')">
-        ${countHtml}
-        <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
-        <div class="gacha-mini-emoji">${city.emoji || '❓'}</div>
-        <div class="gacha-mini-name">${city.name || 'Inconnu'}</div>
-      </div>`;
-    }
-
-    const latStr = city.lat !== undefined ? (city.lat >= 0 ? `N${city.lat.toFixed(2)}` : `S${Math.abs(city.lat).toFixed(2)}`) : "N--.--";
-    const lonStr = city.lon !== undefined ? (city.lon >= 0 ? `E${city.lon.toFixed(2)}` : `W${Math.abs(city.lon).toFixed(2)}`) : "E--.--";
-
-    return `<div class="gacha-card ${city.rarity || 'common'}">
-      <div class="gacha-card-rarity">
-        <span>${RARITY_LABELS[city.rarity] || 'CLASSIQUE'}</span>
-        <span>${RARITY_STARS[city.rarity] || '⭐'}</span>
-      </div>
-      
-      <div style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:12px;margin-bottom:12px;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:center;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5);">
-        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);z-index:2;pointer-events:none;"></div>
-        <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
-        <svg viewBox="0 0 100 55" style="width:190px;height:104px;position:relative;z-index:1;filter:drop-shadow(0 0 8px ${c});">${visual.svg(c)}</svg>
-      </div>
-      
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <div class="gacha-card-name">${city.name || 'Inconnu'}</div>
-        <div style="font-size:1.2rem;line-height:1;">${city.emoji || '❓'}</div>
-      </div>
-      
-      <div class="gacha-card-region">${city.region || 'SECTEUR'} • ${city.type || 'ZONE INCONNUE'}</div>
-      
-      <div class="gacha-card-stat" style="flex-direction:column;gap:6px;">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="color:#fff;">COORD</span>
-          <span style="color:${c};">${latStr} // ${lonStr}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:0.5rem;opacity:0.5;">UID: ${city.uid || 'XXX-000'}</span>
-          <span style="font-family:monospace;font-size:0.8rem;letter-spacing:-1px;opacity:0.6;">||| | ||| || |</span>
-        </div>
-      </div>
-    </div>`;
-  } catch(e) {
-    console.error("Erreur buildCard:", e);
-    return `<div class="gacha-mini common">Erreur</div>`;
+// --- GÉNÉRATEUR DE CARTES (DESIGN DATAPAD) ---
+export function buildCard(city, large = true) {
+  let dynamicPath = city.svgPath;
+  if (!dynamicPath && city.polygon) {
+    dynamicPath = geoJsonToSvgPath(city.polygon);
   }
+  
+  const visual = dynamicPath 
+    ? { sil: dynamicPath, svg: (c) => `<path d="${dynamicPath}" fill="${c}"/>` }
+    : (CITY_VISUALS[city.name] || { sil: "M20 20 L80 20 L80 40 L20 40 Z", svg: (c) => `<path d="M20 20 L80 20 L80 40 L20 40 Z" fill="${c}"/>` });
+
+  const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
+  const c = rc.accent; 
+
+  if (!large) {
+    return `<div class="gacha-mini ${city.rarity}" title="${city.name}" style="position:relative;overflow:hidden;">
+      <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
+      <div class="gacha-mini-emoji">${city.emoji}</div>
+      <div class="gacha-mini-name">${city.name}</div>
+    </div>`;
+  }
+
+  const latStr = city.lat >= 0 ? `N${city.lat.toFixed(2)}` : `S${Math.abs(city.lat).toFixed(2)}`;
+  const lonStr = city.lon >= 0 ? `E${city.lon.toFixed(2)}` : `W${Math.abs(city.lon).toFixed(2)}`;
+
+  return `<div class="gacha-card ${city.rarity}">
+    <div class="gacha-card-rarity">
+      <span>${RARITY_LABELS[city.rarity]}</span>
+      <span>${RARITY_STARS[city.rarity]}</span>
+    </div>
+    
+    <div style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:12px;margin-bottom:12px;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:center;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5);">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);z-index:2;pointer-events:none;"></div>
+      <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
+      <svg viewBox="0 0 100 55" style="width:190px;height:104px;position:relative;z-index:1;filter:drop-shadow(0 0 8px ${c});">${visual.svg(c)}</svg>
+    </div>
+    
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div class="gacha-card-name">${city.name}</div>
+      <div style="font-size:1.2rem;line-height:1;">${city.emoji}</div>
+    </div>
+    
+    <div class="gacha-card-region">${city.region} • ${city.type || 'Zone Inconnue'}</div>
+    
+    <div class="gacha-card-stat" style="flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:#fff;">COORD</span>
+        <span style="color:${c};">${latStr} // ${lonStr}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.5rem;opacity:0.5;">UID: ${city.uid || 'XXX-000'}</span>
+        <span style="font-family:monospace;font-size:0.8rem;letter-spacing:-1px;opacity:0.6;">||| | ||| || |</span>
+      </div>
+    </div>
+  </div>`;
 }
 
-// --- 4. RÉCOMPENSE DES 100% ---
+// --- RÉCOMPENSE DES 100% DE LA VILLE ---
 export function awardCityCompletion(cityName, polygon, lat, lng) {
   const dynamicPath = geoJsonToSvgPath(polygon);
   
@@ -160,7 +151,6 @@ export function awardCityCompletion(cityName, polygon, lat, lng) {
       wrap.innerHTML = buildCard(specialCard, true);
       label.innerHTML = `INCROYABLE !<br>Vous avez cartographié ${cityName} !`;
 
-      overlay.style.zIndex = "2000";
       overlay.style.display = "flex";
       setTimeout(() => {
         overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
@@ -175,7 +165,7 @@ export function awardCityCompletion(cityName, polygon, lat, lng) {
   }
 }
 
-// --- 5. LOGIQUE DU GLOBE 3D ---
+// --- LOGIQUE DU GLOBE 3D ---
 let globeState = { lon0: 0, lat0: 20, zoomScale: 1, phase: 'idle' };
 
 function globeProject(lat, lon, lon0, lat0, R) {
@@ -242,7 +232,7 @@ function animateGlobe() {
   globeAnimId = requestAnimationFrame(animateGlobe);
 }
 
-// --- 6. INTERFACE ET ACTIONS ---
+// --- INTERFACE GLOBALE DU GACHA ---
 window.openDrawScreen = () => {
   document.getElementById("draw-screen").style.display = "flex";
   document.getElementById("btn-draw-dot").style.display = "none";
@@ -290,9 +280,9 @@ window.globeDraw = () => {
   globeState.phase = 'zooming';
   globeState.drawnCity = drawn;
   
-  let frame = 0;
   const targetLon = drawn.lon;
   const targetLat = drawn.lat;
+  let frame = 0;
   
   const zoomAnim = setInterval(() => {
     frame++;
@@ -322,7 +312,6 @@ function showReveal(city) {
   wrap.innerHTML = buildCard(city, true);
   label.innerHTML = "DONNÉES EXTRAITES<br>NOUVELLE CARTE AJOUTÉE";
   
-  overlay.style.zIndex = "2000";
   overlay.style.display = "flex";
   
   setTimeout(() => {
@@ -350,81 +339,30 @@ window.closeReveal = () => {
   const gachaKey = "tabi-gacha-v1";
   const state = JSON.parse(localStorage.getItem(gachaKey));
   const drawBtn = document.getElementById("globe-draw-btn");
-  if(drawBtn && state) drawBtn.disabled = state.draws <= 0;
+  drawBtn.disabled = state.draws <= 0;
   
   const btnDrawsCount = document.getElementById("btn-draws-count");
-  if (btnDrawsCount && state) btnDrawsCount.textContent = state.draws;
+  if (btnDrawsCount) btnDrawsCount.textContent = state.draws;
+  
   const btnColCount = document.getElementById("btn-collection-count");
-  if (btnColCount && state) btnColCount.textContent = state.collection.length;
+  if (btnColCount) btnColCount.textContent = state.collection ? state.collection.length : 0;
 };
 
-// --- 7. COLLECTION SÉCURISÉE AVEC EMPILAGE ET CLIC ---
 window.openCollectionScreen = () => {
-  try {
-    const gachaKey = "tabi-gacha-v1";
-    const state = JSON.parse(localStorage.getItem(gachaKey)) || { collection: [] };
-    const col = state.collection || [];
-    
-    const container = document.getElementById("collection-content");
-    if (!container) return;
-
-    if (col.length === 0) {
-      container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;font-size:0.8rem;">Aucune donnée extraite.</div>`;
-    } else {
-      const validCards = col.filter(city => city && typeof city === 'object');
-      
-      const grouped = {};
-      validCards.forEach(city => {
-        const name = city.name || "Inconnu";
-        if (!grouped[name]) {
-          grouped[name] = { city: city, count: 0 };
-        }
-        grouped[name].count += 1;
-      });
-      
-      const groupedArray = Object.values(grouped).reverse();
-      container.innerHTML = groupedArray.map(item => buildCard(item.city, false, item.count)).join('');
-    }
-    document.getElementById("collection-screen").style.display = "flex";
-  } catch (err) {
-    console.error("Erreur ouverture collection:", err);
+  const gachaKey = "tabi-gacha-v1";
+  const state = JSON.parse(localStorage.getItem(gachaKey)) || { collection: [] };
+  const col = state.collection || [];
+  
+  const container = document.getElementById("collection-content");
+  if (col.length === 0) {
+    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;font-size:0.8rem;">Aucune donnée extraite.<br>Marchez pour gagner des tirages.</div>`;
+  } else {
+    container.innerHTML = col.map(city => buildCard(city, false)).reverse().join('');
   }
+  
+  document.getElementById("collection-screen").style.display = "flex";
 };
 
 window.closeCollectionScreen = () => {
   document.getElementById("collection-screen").style.display = "none";
-};
-
-window.viewCollectionCard = (cityName) => {
-  const gachaKey = "tabi-gacha-v1";
-  const state = JSON.parse(localStorage.getItem(gachaKey));
-  if (!state || !state.collection) return;
-  
-  const city = state.collection.find(c => c.name === cityName);
-  if (!city) return;
-
-  const overlay = document.getElementById("draw-overlay");
-  const wrap = document.getElementById("reveal-card-wrap");
-  const label = document.getElementById("reveal-label");
-  const btn = document.getElementById("reveal-close-btn");
-
-  if(overlay && wrap && label && btn) {
-    wrap.innerHTML = buildCard(city, true);
-    label.innerHTML = "ARCHIVE SÉCURISÉE"; 
-    
-    // ➔ ON FORCE L'AFFICHAGE PAR DESSUS LA COLLECTION
-    overlay.style.zIndex = "2000";
-    overlay.style.display = "flex";
-    
-    setTimeout(() => {
-      overlay.style.backgroundColor = "rgba(4, 8, 20, 0.95)";
-      wrap.style.transform = "rotateY(0deg) scale(1)";
-      wrap.style.opacity = "1";
-    }, 50);
-
-    setTimeout(() => {
-      label.style.color = "rgba(255,255,255,0.8)";
-      btn.style.opacity = "1";
-    }, 400); // Animation un peu plus rapide pour la fluidité
-  }
 };
