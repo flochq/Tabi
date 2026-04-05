@@ -1,73 +1,67 @@
 // js/gacha.js
-import { CITY_VISUALS, RARITY_COLORS, GACHA_CITIES, RARITY_WEIGHTS, RARITY_LABELS, RARITY_STARS, LAND_POLYS } from './data.js';
+import { CITY_VISUALS, RARITY_COLORS, RARITY_WEIGHTS, RARITY_LABELS, RARITY_STARS, GACHA_CITIES, LAND_POLYS } from './data.js';
 
-const GACHA_KEY = "tabi-gacha-v1";
-const MAX_DRAWS = 30;
-const KM_PER_DRAW = 0.001; // 100 mètres = 1 tirage (POUR LE TEST !)
-
-let globeRaf = null;
-let globeState = { lon0:10, lat0:20, phase:'idle', spinSpeed:0.35, targetLon:null, targetLat:null, drawnCity:null, zoomT:0, zoomScale:1 };
-let totalDist = 0; // Distance mise à jour depuis app.js
-
-// --- GESTION DE L'ÉTAT ---
-function loadGachaState() {
-  try { return JSON.parse(localStorage.getItem(GACHA_KEY)) || {draws:0, lastDaily:null, kmAtLastDraw:0, collection:[]}; }
-  catch { return {draws:0, lastDaily:null, kmAtLastDraw:0, collection:[]}; }
-}
-
-function saveGachaState(state) {
-  try { localStorage.setItem(GACHA_KEY, JSON.stringify(state)); } catch {}
-}
-
-export function updateGachaDistance(newTotalDistKm) {
-  totalDist = newTotalDistKm;
-  const state = loadGachaState();
-  const today = new Date().toDateString();
-  let changed = false;
-
-  // Tirage quotidien
-  if (state.lastDaily !== today) {
-    state.draws = Math.min(MAX_DRAWS, state.draws + 1);
-    state.lastDaily = today; 
-    changed = true;
-  }
-
-  // Tirage par la marche
-  const kmGained = totalDist - (state.kmAtLastDraw || 0);
-  const walkDraws = Math.floor(kmGained / KM_PER_DRAW);
+// --- PODOMÈTRE GACHA ---
+export function updateGachaDistance(totalDist) {
+  const gachaKey = "tabi-gacha-v1";
+  let state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, lastDist: 0, collection: [] };
   
-  if (walkDraws > 0) {
-    state.draws = Math.min(MAX_DRAWS, state.draws + walkDraws);
-    state.kmAtLastDraw = (state.kmAtLastDraw || 0) + walkDraws * KM_PER_DRAW;
-    changed = true;
+  const diff = totalDist - state.lastDist;
+  if (diff >= 1) { // 1 tirage par kilomètre
+    const earned = Math.floor(diff);
+    state.draws += earned;
+    state.lastDist += earned;
+    localStorage.setItem(gachaKey, JSON.stringify(state));
+    
+    const drawCountEl = document.getElementById("btn-draws-count");
+    if (drawCountEl) drawCountEl.textContent = state.draws;
+    const dot = document.getElementById("btn-draw-dot");
+    if (dot) dot.style.display = "inline-block";
   }
-
-  if (changed) saveGachaState(state);
-  updateGachaUI(state);
 }
 
-function updateGachaUI(state) {
-  const dc = document.getElementById("btn-draws-count");
-  const cc = document.getElementById("btn-collection-count");
-  const dot = document.getElementById("btn-draw-dot");
-  if (dc) dc.textContent = state.draws;
-  if (cc) cc.textContent = state.collection.length;
-  if (dot) dot.style.display = state.draws > 0 ? "inline-block" : "none";
+// --- CONVERTISSEUR GEOJSON -> SVG ---
+export function geoJsonToSvgPath(geoJson) {
+  if (!geoJson || !geoJson.coordinates) return null;
+  
+  let polys = [];
+  if (geoJson.type === 'Polygon') polys = [geoJson.coordinates];
+  else if (geoJson.type === 'MultiPolygon') polys = geoJson.coordinates;
+  else return null;
+  
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  
+  polys.forEach(poly => {
+    poly[0].forEach(coord => {
+      if (coord[0] < minX) minX = coord[0];
+      if (coord[0] > maxX) maxX = coord[0];
+      if (coord[1] < minY) minY = coord[1];
+      if (coord[1] > maxY) maxY = coord[1];
+    });
+  });
+
+  const lonDiff = maxX - minX || 1;
+  const latDiff = maxY - minY || 1;
+  const scale = Math.min(90 / lonDiff, 45 / latDiff);
+  
+  const xOffset = (100 - (lonDiff * scale)) / 2;
+  const yOffset = (55 - (latDiff * scale)) / 2;
+
+  let pathStr = "";
+  polys.forEach(poly => {
+    poly[0].forEach((coord, i) => {
+      const x = (coord[0] - minX) * scale + xOffset;
+      const y = 55 - ((coord[1] - minY) * scale + yOffset); 
+      pathStr += (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)} ` : `L ${x.toFixed(1)} ${y.toFixed(1)} `);
+    });
+    pathStr += "Z ";
+  });
+  
+  return pathStr;
 }
 
-// --- LOGIQUE DU TIRAGE ---
-function rollRarity() {
-  const total = Object.values(RARITY_WEIGHTS).reduce((a,b)=>a+b,0);
-  let r = Math.random() * total;
-  for (const [rarity, w] of Object.entries(RARITY_WEIGHTS)) {
-    r -= w; if (r <= 0) return rarity;
-  }
-  return "common";
-}
-
-// Dans js/gacha.js
+// --- GÉNÉRATEUR DE CARTES (DESIGN DATAPAD) ---
 export function buildCard(city, large = true) {
-  // 1. Détection de la forme dynamique ou statique
   let dynamicPath = city.svgPath;
   if (!dynamicPath && city.polygon) {
     dynamicPath = geoJsonToSvgPath(city.polygon);
@@ -80,7 +74,6 @@ export function buildCard(city, large = true) {
   const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
   const c = rc.accent; 
 
-  // 2. Affichage Miniature (Collection)
   if (!large) {
     return `<div class="gacha-mini ${city.rarity}" title="${city.name}" style="position:relative;overflow:hidden;">
       <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
@@ -89,7 +82,6 @@ export function buildCard(city, large = true) {
     </div>`;
   }
 
-  // 3. Affichage Grande Carte (Tirage)
   const latStr = city.lat >= 0 ? `N${city.lat.toFixed(2)}` : `S${Math.abs(city.lat).toFixed(2)}`;
   const lonStr = city.lon >= 0 ? `E${city.lon.toFixed(2)}` : `W${Math.abs(city.lon).toFixed(2)}`;
 
@@ -101,7 +93,6 @@ export function buildCard(city, large = true) {
     
     <div style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:12px;margin-bottom:12px;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:center;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5);">
       <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);z-index:2;pointer-events:none;"></div>
-      
       <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
       <svg viewBox="0 0 100 55" style="width:190px;height:104px;position:relative;z-index:1;filter:drop-shadow(0 0 8px ${c});">${visual.svg(c)}</svg>
     </div>
@@ -125,105 +116,65 @@ export function buildCard(city, large = true) {
     </div>
   </div>`;
 }
-// --- FONCTIONS EXPORTÉES POUR LE HTML ---
-window.openDrawScreen = () => {
-  const state = loadGachaState();
-  document.getElementById("draw-screen").style.display = 'flex';
-  document.getElementById("globe-draw-btn").disabled = state.draws <= 0;
-  document.getElementById("globe-draw-btn").style.opacity = state.draws > 0 ? '1' : '0.5';
+
+// --- RÉCOMPENSE DES 100% DE LA VILLE ---
+export function awardCityCompletion(cityName, polygon, lat, lng) {
+  const dynamicPath = geoJsonToSvgPath(polygon);
   
-  globeState.phase = 'idle'; globeState.zoomScale = 1; globeState.drawnCity = null;
-  if(globeRaf) cancelAnimationFrame(globeRaf);
-  globeRaf = requestAnimationFrame(globeLoop);
-};
+  const specialCard = {
+      name: cityName,
+      region: "Exploration Totale",
+      type: "Ville Maîtrisée",
+      rarity: "legendary", 
+      emoji: "🏆",
+      lat: lat,
+      lon: lng,
+      uid: `EXP-${cityName.substring(0,3).toUpperCase()}-100`,
+      svgPath: dynamicPath
+  };
 
-window.closeDrawScreen = () => {
-  document.getElementById("draw-screen").style.display = 'none';
-  if(globeRaf){ cancelAnimationFrame(globeRaf); globeRaf=null; }
-};
+  const gachaKey = "tabi-gacha-v1";
+  let state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, collection: [] };
+  if (!state.collection) state.collection = [];
+  state.collection.push(specialCard);
+  localStorage.setItem(gachaKey, JSON.stringify(state));
 
-window.globeDraw = () => {
-  const state = loadGachaState();
-  if(state.draws <= 0) return;
+  const btnCollectionCount = document.getElementById("btn-collection-count");
+  if (btnCollectionCount) btnCollectionCount.textContent = state.collection.length;
 
-  const rarity = rollRarity();
-  const pool = GACHA_CITIES.filter(c => c.rarity === rarity);
-  const city = pool[Math.floor(Math.random() * pool.length)];
-  const isNew = !(state.collection).some(c => c.name === city.name);
-
-  state.draws--;
-  state.collection.push(city);
-  saveGachaState(state);
-  updateGachaUI(state);
-
-  document.getElementById("globe-draw-btn").disabled = true;
-  document.getElementById("globe-draw-btn").style.opacity = '0.5';
-
-  globeState.drawnCity = city;
-  globeState.targetLon = city.lon;
-  globeState.targetLat = Math.max(-40, Math.min(40, city.lat*0.7));
-  globeState.phase = 'spinning';
-  
-  globeState.pendingCity = city;
-  globeState.pendingIsNew = isNew;
-};
-
-window.closeReveal = () => {
   const overlay = document.getElementById("draw-overlay");
-  overlay.style.opacity = '0';
-  setTimeout(() => {
-    overlay.style.display = 'none';
-    window.closeDrawScreen();
-  }, 400);
-};
+  const wrap = document.getElementById("reveal-card-wrap");
+  const label = document.getElementById("reveal-label");
+  const btn = document.getElementById("reveal-close-btn");
 
-window.openCollectionScreen = () => {
-  const state = loadGachaState();
-  const el = document.getElementById("collection-content");
-  
-  if(state.collection.length === 0){
-    el.style.gridTemplateColumns = '1fr';
-    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:0.7rem;">Aucune carte encore.<br>Lance un tirage pour commencer !</div>`;
-  } else {
-    el.style.gridTemplateColumns = 'repeat(3,1fr)';
-    // Dédoublonnage
-    const counts = {}; const unique = [];
-    state.collection.forEach(city => {
-      const key = city.name;
-      if(!counts[key]){ counts[key] = 0; unique.push(city); }
-      counts[key]++;
-    });
-    
-    el.innerHTML = unique.map(city => {
-      const badge = counts[city.name] > 1 ? `<div style="position:absolute;top:4px;right:4px;background:#1e293b;color:#fff;border-radius:99px;font-size:0.5rem;padding:1px 5px;">x${counts[city.name]}</div>` : '';
-      // On encode l'objet city en base64 pour éviter les bugs de guillemets dans le HTML
-      const cityData = btoa(unescape(encodeURIComponent(JSON.stringify(city))));
-      return `<div style="position:relative;" onclick="showCardDetail('${cityData}')">${buildCard(city, false)}${badge}</div>`;
-    }).join('');
+  if(overlay && wrap && label && btn) {
+      wrap.innerHTML = buildCard(specialCard, true);
+      label.innerHTML = `INCROYABLE !<br>Vous avez cartographié ${cityName} !`;
+
+      overlay.style.display = "flex";
+      setTimeout(() => {
+        overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
+        wrap.style.transform = "rotateY(0deg) scale(1)";
+        wrap.style.opacity = "1";
+      }, 50);
+
+      setTimeout(() => {
+        label.style.color = "rgba(255,255,255,0.8)";
+        btn.style.opacity = "1";
+      }, 800);
   }
-  document.getElementById("collection-screen").style.display = 'flex';
-};
+}
 
-window.closeCollectionScreen = () => {
-  document.getElementById("collection-screen").style.display = 'none';
-};
+// --- LOGIQUE DU GLOBE 3D ---
+let globeState = { lon0: 0, lat0: 20, zoomScale: 1, phase: 'idle' };
 
-window.showCardDetail = (cityBase64) => {
-  const city = JSON.parse(decodeURIComponent(escape(atob(cityBase64))));
-  const overlay = document.getElementById("gacha-overlay");
-  overlay.style.display = 'flex';
-  document.getElementById("gacha-overlay-card").innerHTML = buildCard(city, true);
-  overlay.onclick = (e) => { if(e.target===overlay) overlay.style.display = 'none'; };
-};
-
-// --- LOGIQUE DU GLOBE 3D (CANVAS) ---
 function globeProject(lat, lon, lon0, lat0, R) {
-  const dLon = (lon - lon0) * Math.PI/180;
-  const latR = lat * Math.PI/180, lat0R = lat0 * Math.PI/180;
-  const x = R * Math.cos(latR) * Math.sin(dLon);
-  const y = R * (Math.sin(latR)*Math.cos(lat0R) - Math.cos(latR)*Math.cos(dLon)*Math.sin(lat0R));
-  const z = Math.sin(latR)*Math.sin(lat0R) + Math.cos(latR)*Math.cos(dLon)*Math.cos(lat0R);
-  return { x, y, z };
+  const d2r = Math.PI/180;
+  const rLa = lat*d2r, rLo = lon*d2r, rLa0 = lat0*d2r, rLo0 = lon0*d2r;
+  const x = Math.cos(rLa)*Math.sin(rLo-rLo0);
+  const y = Math.cos(rLa0)*Math.sin(rLa) - Math.sin(rLa0)*Math.cos(rLa)*Math.cos(rLo-rLo0);
+  const z = Math.sin(rLa0)*Math.sin(rLa) + Math.cos(rLa0)*Math.cos(rLa)*Math.cos(rLo-rLo0);
+  return { x: x*R, y: y*R, z: z };
 }
 
 function drawGlobeFrame() {
@@ -244,13 +195,11 @@ function drawGlobeFrame() {
     }
   }
 
-  // Océan : Fond spatial profond
   ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.clip();
   ctx.fillStyle = '#020617'; ctx.fillRect(0,0,W,W);
 
-  // Terres : Effet filaire holographique cyan
   ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'; // Néon bleu
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
   ctx.lineWidth = 1.2;
   
   for(const poly of LAND_POLYS){
@@ -267,7 +216,6 @@ function drawGlobeFrame() {
     ctx.stroke();
   }
 
-  // Ajout d'un voile lumineux sur le globe (effet atmosphère)
   const grad = ctx.createRadialGradient(CX, CY, R*0.5, CX, CY, R);
   grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
   grad.addColorStop(1, 'rgba(56, 189, 248, 0.15)');
@@ -276,143 +224,145 @@ function drawGlobeFrame() {
 
   ctx.restore();
 }
-function globeLoop() {
-  const gs = globeState;
-  if(gs.phase==='idle'){
-    gs.lon0=(gs.lon0+gs.spinSpeed)%360;
-    drawGlobeFrame();
-  } else if(gs.phase==='spinning'){
-    const diff=((gs.targetLon-gs.lon0+540)%360)-180;
-    const latDiff=(gs.targetLat-gs.lat0)*0.04;
-    gs.lat0+=latDiff;
-    if(Math.abs(diff)<0.6&&Math.abs(latDiff)<0.05){
-      gs.lon0=gs.targetLon; gs.lat0=gs.targetLat; gs.phase='zooming'; gs.zoomT=0;
-    } else {
-      const spd=Math.max(0.4,Math.abs(diff)*0.07);
-      gs.lon0=(gs.lon0+Math.sign(diff)*Math.min(spd,Math.abs(diff)))%360;
-    }
-    drawGlobeFrame();
-  } else if(gs.phase==='zooming'){
-    gs.zoomT = Math.min(1, gs.zoomT + 0.02);
-    gs.zoomScale = 1 + (gs.zoomT * gs.zoomT) * 39; 
-    drawGlobeFrame();
-    if(gs.zoomT >= 1){ 
-      gs.phase='done'; 
-      showGachaReveal(); 
-    }
-  }
-  globeRaf = requestAnimationFrame(globeLoop);
+
+let globeAnimId = null;
+function animateGlobe() {
+  if (globeState.phase === 'idle') globeState.lon0 += 0.5;
+  drawGlobeFrame();
+  globeAnimId = requestAnimationFrame(animateGlobe);
 }
 
-function showGachaReveal() {
-  const city = globeState.pendingCity;
-  const overlay = document.getElementById("draw-overlay");
-  document.getElementById("reveal-card-wrap").innerHTML = buildCard(city, true);
-  document.getElementById("reveal-label").textContent = globeState.pendingIsNew ? '✨ Nouvelle ville découverte !' : 'Doublon · déjà possédé';
-  
-  overlay.style.display = 'flex';
-  setTimeout(() => {
-    overlay.style.opacity = '1';
-    document.getElementById("reveal-card-wrap").style.transform = 'rotateY(0deg) scale(1)';
-    document.getElementById("reveal-card-wrap").style.opacity = '1';
-    document.getElementById("reveal-close-btn").style.opacity = '1';
-  }, 50);
-}
-
-// Initialisation au chargement
-updateGachaDistance(0);
-
-// Convertisseur : Coordonnées GPS (GeoJSON) ➔ Tracé Vectoriel (SVG Path)
-export function geoJsonToSvgPath(geoJson) {
-  if (!geoJson || !geoJson.coordinates) return null;
-  
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  
-  // Gère les villes simples (Polygon) ou complexes avec enclaves/îles (MultiPolygon)
-  const polys = geoJson.type === 'MultiPolygon' ? geoJson.coordinates : [geoJson.coordinates];
-  
-  // 1. Trouver les limites extrêmes de la ville (Bounding Box)
-  polys.forEach(poly => {
-    poly[0].forEach(coord => {
-      if (coord[0] < minX) minX = coord[0];
-      if (coord[0] > maxX) maxX = coord[0];
-      if (coord[1] < minY) minY = coord[1];
-      if (coord[1] > maxY) maxY = coord[1];
-    });
-  });
-
-  // 2. Calculer l'échelle pour que ça rentre dans une zone de 90x45 (avec marges)
-  const lonDiff = maxX - minX || 1;
-  const latDiff = maxY - minY || 1;
-  const scale = Math.min(90 / lonDiff, 45 / latDiff);
-  
-  // Centrer la forme
-  const xOffset = (100 - (lonDiff * scale)) / 2;
-  const yOffset = (55 - (latDiff * scale)) / 2;
-
-  // 3. Tracer le chemin
-  let pathStr = "";
-  polys.forEach(poly => {
-    poly[0].forEach((coord, i) => {
-      const x = (coord[0] - minX) * scale + xOffset;
-      const y = 55 - ((coord[1] - minY) * scale + yOffset); // Inverser l'axe Y pour l'écran
-      // .toFixed(1) permet d'alléger considérablement le texte final !
-      pathStr += (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)} ` : `L ${x.toFixed(1)} ${y.toFixed(1)} `);
-    });
-    pathStr += "Z ";
-  });
-
-  // --- MÉCANIQUE DES 100% : CRÉATION DE LA CARTE DE VICTOIRE ---
-export function awardCityCompletion(cityName, polygon, lat, lng) {
-  // 1. On génère le tracé SVG unique de la ville
-  const dynamicPath = geoJsonToSvgPath(polygon);
-  
-  // 2. On crée la carte spéciale "100%"
-  const specialCard = {
-      name: cityName,
-      region: "Exploration Totale",
-      type: "Ville Maîtrisée",
-      rarity: "legendary", // Elle brillera en violet néon !
-      emoji: "🏆",
-      lat: lat,
-      lon: lng,
-      uid: `EXP-${cityName.substring(0,3).toUpperCase()}-100`, // Ex: EXP-SAR-100
-      svgPath: dynamicPath
-  };
-
-  // 3. Sauvegarde dans la collection locale
+// --- INTERFACE GLOBALE DU GACHA ---
+window.openDrawScreen = () => {
+  document.getElementById("draw-screen").style.display = "flex";
+  document.getElementById("btn-draw-dot").style.display = "none";
   const gachaKey = "tabi-gacha-v1";
-  let state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, collection: [] };
-  if (!state.collection) state.collection = [];
-  state.collection.push(specialCard);
+  const state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, collection: [] };
+  
+  const drawBtn = document.getElementById("globe-draw-btn");
+  drawBtn.textContent = `Tirer une carte (${state.draws} dispo)`;
+  drawBtn.disabled = state.draws <= 0;
+  drawBtn.style.opacity = state.draws <= 0 ? "0.5" : "1";
+
+  if (!globeAnimId) animateGlobe();
+};
+
+window.closeDrawScreen = () => {
+  document.getElementById("draw-screen").style.display = "none";
+  if (globeAnimId) { cancelAnimationFrame(globeAnimId); globeAnimId = null; }
+};
+
+window.globeDraw = () => {
+  const gachaKey = "tabi-gacha-v1";
+  let state = JSON.parse(localStorage.getItem(gachaKey));
+  if (!state || state.draws <= 0) return;
+
+  state.draws -= 1;
   localStorage.setItem(gachaKey, JSON.stringify(state));
 
-  // Mise à jour du compteur si le menu est ouvert
-  const btnCollectionCount = document.getElementById("btn-collection-count");
-  if (btnCollectionCount) btnCollectionCount.textContent = state.collection.length;
+  const r = Math.random() * 100;
+  let rarity = 'common';
+  if (r > RARITY_WEIGHTS.common) rarity = 'rare';
+  if (r > RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare) rarity = 'epic';
+  if (r > RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare + RARITY_WEIGHTS.epic) rarity = 'legendary';
 
-  // 4. Déclenchement de l'hologramme de victoire en plein écran
+  const pool = GACHA_CITIES.filter(c => c.rarity === rarity);
+  const drawn = pool[Math.floor(Math.random() * pool.length)];
+
+  if (!state.collection) state.collection = [];
+  state.collection.push(drawn);
+  localStorage.setItem(gachaKey, JSON.stringify(state));
+
+  const drawBtn = document.getElementById("globe-draw-btn");
+  drawBtn.textContent = `Tirer une carte (${state.draws} dispo)`;
+  drawBtn.disabled = true;
+
+  globeState.phase = 'zooming';
+  globeState.drawnCity = drawn;
+  
+  const targetLon = drawn.lon;
+  const targetLat = drawn.lat;
+  let frame = 0;
+  
+  const zoomAnim = setInterval(() => {
+    frame++;
+    const p = frame / 60;
+    
+    let lonDiff = targetLon - (globeState.lon0 % 360);
+    if (lonDiff > 180) lonDiff -= 360;
+    if (lonDiff < -180) lonDiff += 360;
+    
+    globeState.lon0 += lonDiff * 0.05;
+    globeState.lat0 += (targetLat - globeState.lat0) * 0.05;
+    globeState.zoomScale = 1 + (p * 5);
+
+    if (frame >= 60) {
+      clearInterval(zoomAnim);
+      showReveal(drawn);
+    }
+  }, 16);
+};
+
+function showReveal(city) {
   const overlay = document.getElementById("draw-overlay");
   const wrap = document.getElementById("reveal-card-wrap");
   const label = document.getElementById("reveal-label");
   const btn = document.getElementById("reveal-close-btn");
 
-  if(overlay && wrap && label && btn) {
-      wrap.innerHTML = buildCard(specialCard, true); // On utilise notre nouveau design !
-      label.innerHTML = `INCROYABLE !<br>Vous avez cartographié ${cityName} !`;
+  wrap.innerHTML = buildCard(city, true);
+  label.innerHTML = "DONNÉES EXTRAITES<br>NOUVELLE CARTE AJOUTÉE";
+  
+  overlay.style.display = "flex";
+  
+  setTimeout(() => {
+    overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
+    wrap.style.transform = "rotateY(0deg) scale(1)";
+    wrap.style.opacity = "1";
+  }, 50);
 
-      overlay.style.display = "flex";
-      setTimeout(() => {
-        overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
-        wrap.style.transform = "rotateY(0deg) scale(1)";
-        wrap.style.opacity = "1";
-      }, 50);
+  setTimeout(() => {
+    label.style.color = "rgba(255,255,255,0.8)";
+    btn.style.opacity = "1";
+  }, 800);
+}
 
-      setTimeout(() => {
-        label.style.color = "rgba(255,255,255,0.8)";
-        btn.style.opacity = "1";
-      }, 800);
+window.closeReveal = () => {
+  document.getElementById("draw-overlay").style.display = "none";
+  document.getElementById("reveal-card-wrap").style.opacity = "0";
+  document.getElementById("reveal-card-wrap").style.transform = "rotateY(90deg) scale(0.8)";
+  document.getElementById("reveal-label").style.color = "rgba(255,255,255,0)";
+  document.getElementById("reveal-close-btn").style.opacity = "0";
+  
+  globeState.phase = 'idle';
+  globeState.zoomScale = 1;
+  
+  const gachaKey = "tabi-gacha-v1";
+  const state = JSON.parse(localStorage.getItem(gachaKey));
+  const drawBtn = document.getElementById("globe-draw-btn");
+  drawBtn.disabled = state.draws <= 0;
+  
+  const btnDrawsCount = document.getElementById("btn-draws-count");
+  if (btnDrawsCount) btnDrawsCount.textContent = state.draws;
+  
+  const btnColCount = document.getElementById("btn-collection-count");
+  if (btnColCount) btnColCount.textContent = state.collection ? state.collection.length : 0;
+};
+
+window.openCollectionScreen = () => {
+  const gachaKey = "tabi-gacha-v1";
+  const state = JSON.parse(localStorage.getItem(gachaKey)) || { collection: [] };
+  const col = state.collection || [];
+  
+  const container = document.getElementById("collection-content");
+  if (col.length === 0) {
+    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;font-size:0.8rem;">Aucune donnée extraite.<br>Marchez pour gagner des tirages.</div>`;
+  } else {
+    container.innerHTML = col.map(city => buildCard(city, false)).reverse().join('');
   }
-}
-  return pathStr;
-}
+  
+  document.getElementById("collection-screen").style.display = "flex";
+};
+
+window.closeCollectionScreen = () => {
+  document.getElementById("collection-screen").style.display = "none";
+};
