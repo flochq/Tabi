@@ -3,6 +3,7 @@ import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
 import { updateGachaDistance } from './gacha.js';
+import { awardCityCompletion } from './gacha.js'; // ➔ LA NOUVELLE LIGNE
 import { fetchWalkingRoute } from './routing.js';
 import { initMissions, updateMissionProgress } from './missions.js'; // ➔ NOUVEL IMPORT
 
@@ -65,6 +66,11 @@ const updateStats = () => {
           
           // ➔ NOUVEAU : Met à jour la mission "Découvrir X% de la ville"
           updateMissionProgress('coverage', pct, true); 
+
+          // ➔ NOUVEAU : LA MÉCANIQUE DES 100%
+          if (pct >= 99.0) {
+            checkCityCompletion(cityBoundary.name, cityBoundary.polygon, lastGpsPos.lat, lastGpsPos.lng);
+          }
         }
       } catch (e) {
         // Ignorer les erreurs géométriques silencieuses
@@ -77,6 +83,22 @@ const updateStats = () => {
     }
   }
 };
+
+// --- SÉCURITÉ : NE DONNER LA CARTE QU'UNE SEULE FOIS ---
+function checkCityCompletion(cityName, polygon, lat, lng) {
+  const COMPLETION_KEY = "tabi-completed-cities";
+  let completed = JSON.parse(localStorage.getItem(COMPLETION_KEY)) || [];
+  
+  // Si on a déjà gagné cette ville, on ne fait rien
+  if (completed.includes(cityName)) return;
+
+  // Sinon, on l'ajoute à la liste des villes terminées
+  completed.push(cityName);
+  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completed));
+  
+  // Et on déclenche l'animation et la récompense !
+  awardCityCompletion(cityName, polygon, lat, lng);
+}
 
 // --- 3. LOGIQUE APPAREIL PHOTO ---
 if (cameraTrigger && cameraInput) {
