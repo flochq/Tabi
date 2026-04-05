@@ -84,21 +84,6 @@ const updateStats = () => {
   }
 };
 
-// --- SÉCURITÉ : NE DONNER LA CARTE QU'UNE SEULE FOIS ---
-function checkCityCompletion(cityName, polygon, lat, lng) {
-  const COMPLETION_KEY = "tabi-completed-cities";
-  let completed = JSON.parse(localStorage.getItem(COMPLETION_KEY)) || [];
-  
-  // Si on a déjà gagné cette ville, on ne fait rien
-  if (completed.includes(cityName)) return;
-
-  // Sinon, on l'ajoute à la liste des villes terminées
-  completed.push(cityName);
-  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completed));
-  
-  // Et on déclenche l'animation et la récompense !
-  awardCityCompletion(cityName, polygon, lat, lng);
-}
 
 // --- 3. LOGIQUE APPAREIL PHOTO ---
 if (cameraTrigger && cameraInput) {
@@ -309,4 +294,20 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
+}
+
+// --- SÉCURITÉ : NE DONNER LA CARTE QU'UNE SEULE FOIS ---
+function checkCityCompletion(cityName, polygon, lat, lng) {
+  const COMPLETION_KEY = "tabi-completed-cities";
+  let completed = JSON.parse(localStorage.getItem(COMPLETION_KEY)) || [];
+  
+  // Si on a déjà gagné cette ville, on ne fait rien
+  if (completed.includes(cityName)) return;
+
+  // Sinon, on l'ajoute à la liste des villes terminées
+  completed.push(cityName);
+  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completed));
+  
+  // Et on déclenche l'animation et la récompense !
+  awardCityCompletion(cityName, polygon, lat, lng);
 }
