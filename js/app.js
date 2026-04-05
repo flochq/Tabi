@@ -2,10 +2,9 @@
 import { initGPS } from './gps.js';
 import { initFog, revealLocation, revealMassiveLocation, getExploredArea } from './fog.js';
 import { fetchPOIs, fetchCityBoundary } from './api.js';
-import { updateGachaDistance } from './gacha.js';
-import { awardCityCompletion } from './gacha.js'; // ➔ LA NOUVELLE LIGNE
+import { updateGachaDistance, awardCityCompletion } from './gacha.js';
 import { fetchWalkingRoute } from './routing.js';
-import { initMissions, updateMissionProgress } from './missions.js'; // ➔ NOUVEL IMPORT
+import { initMissions, updateMissionProgress } from './missions.js';
 
 // --- 1. INITIALISATION DE LA CARTE ---
 const initMap = () => {
@@ -24,7 +23,7 @@ const initMap = () => {
 
 const map = initMap();
 initFog(map);
-initMissions(); // ➔ Démarrage des missions quotidiennes
+initMissions();
 
 // --- VARIABLES D'ÉTAT GLOBALES ---
 let userMarker = null;
@@ -36,22 +35,19 @@ let nearbyPOI = null;
 let cityBoundary = null;
 let cityArea = 0;
 
-// Verrous de sécurité anti-spam
 let isFetchingCity = false;
 let isFetchingPOIs = false;
 
-// Variables du podomètre et routage
 let totalDistWalked = parseFloat(localStorage.getItem("tabi-dist")) || 0;
 let lastGpsPos = null;
 let currentRouteLayer = null;
 
-// --- RÉFÉRENCES DOM ---
 const cameraBtn = document.getElementById("camera-btn");
 const cameraTrigger = document.getElementById("camera-trigger");
 const cameraInput = document.getElementById("camera-input");
 const cameraPoiName = document.getElementById("camera-poi-name");
 
-// --- 2. LOGIQUE DES STATISTIQUES ---
+// --- 2. LOGIQUE DES STATISTIQUES ET VÉRIFICATION 100% ---
 const updateStats = () => {
   if (cityBoundary) {
     const explored = getExploredArea();
@@ -64,16 +60,15 @@ const updateStats = () => {
           const exploredAreaKm2 = turf.area(intersection) / 1e6;
           pct = (exploredAreaKm2 / cityArea) * 100;
           
-          // ➔ NOUVEAU : Met à jour la mission "Découvrir X% de la ville"
           updateMissionProgress('coverage', pct, true); 
-
-          // ➔ NOUVEAU : LA MÉCANIQUE DES 100%
-          if (pct >= 0.1) {
+          
+          // ➔ LA FAMEUSE VÉRIFICATION DES 99% DE LA VILLE
+          if (pct >= 99.0) {
             checkCityCompletion(cityBoundary.name, cityBoundary.polygon, lastGpsPos.lat, lastGpsPos.lng);
           }
         }
       } catch (e) {
-        // Ignorer les erreurs géométriques silencieuses
+        // Ignorer les erreurs
       }
     }
     
@@ -83,7 +78,6 @@ const updateStats = () => {
     }
   }
 };
-
 
 // --- 3. LOGIQUE APPAREIL PHOTO ---
 if (cameraTrigger && cameraInput) {
@@ -95,7 +89,6 @@ if (cameraTrigger && cameraInput) {
     const file = e.target.files[0];
     if (!file || !nearbyPOI) return;
 
-    // ➔ NOUVEAU : Valide la mission "Prendre un monument en photo"
     updateMissionProgress('photo', 1);
 
     discoveredPOIs.add(nearbyPOI.id);
@@ -114,14 +107,14 @@ if (cameraTrigger && cameraInput) {
 
 // --- 4. GESTION DES MONUMENTS (POI) ---
 const loadMonuments = async (lat, lng) => {
-  if (isFetchingPOIs) return; // Sécurité anti-spam
+  if (isFetchingPOIs) return; 
   isFetchingPOIs = true;
 
   const pois = await fetchPOIs(lat, lng, 1000); 
   
   if (!pois || pois.length === 0) {
     isFetchingPOIs = false;
-    lastFetchPos = null; // En cas d'erreur réseau, on force la tentative au prochain pas
+    lastFetchPos = null;
     return;
   }
 
@@ -154,7 +147,7 @@ const checkProximity = (userLat, userLng) => {
     if (discoveredPOIs.has(poi.id)) continue;
     const distance = turf.distance([userLng, userLat], [poi.lng, poi.lat], { units: 'kilometers' });
     
-    if (distance <= 0.05) { // 50 mètres
+    if (distance <= 0.05) {
       foundNearby = poi;
       break; 
     }
@@ -172,11 +165,11 @@ const checkProximity = (userLat, userLng) => {
 
 // --- 5. LOGIQUE DU PLANIFICATEUR D'ITINÉRAIRES ---
 window.suggestRoute = async () => {
-  if (!lastGpsPos) return alert("📍 En attente du signal GPS, marchez un peu...");
+  if (!lastGpsPos) return alert("📍 En attente du signal GPS...");
 
   const undiscovered = allKnownPOIs.filter(p => !discoveredPOIs.has(p.id));
   if (undiscovered.length === 0) {
-    return alert("Vous avez découvert tous les monuments aux alentours. Éloignez-vous pour en charger de nouveaux.");
+    return alert("Vous avez découvert tous les monuments aux alentours.");
   }
 
   undiscovered.forEach(p => {
@@ -211,7 +204,7 @@ window.suggestRoute = async () => {
   
   const distanceKm = route.distance / 1000;
   document.getElementById("route-dist").textContent = distanceKm.toFixed(1);
-  const walkTimeMinutes = Math.round(distanceKm * 15); // Calcul à 4km/h
+  const walkTimeMinutes = Math.round(distanceKm * 15);
   document.getElementById("route-time").textContent = walkTimeMinutes;
 };
 
@@ -230,9 +223,7 @@ const updateMapLocation = (lat, lng, accuracy) => {
     if (distanceKm > 0.005) {
       totalDistWalked += distanceKm;
       
-      // ➔ NOUVEAU : Met à jour la mission "Marcher X km"
       updateMissionProgress('distance', distanceKm);
-      
       localStorage.setItem("tabi-dist", totalDistWalked.toString());
       updateGachaDistance(totalDistWalked);
     }
@@ -257,7 +248,6 @@ const updateMapLocation = (lat, lng, accuracy) => {
     userMarker.setLatLng([lat, lng]);
   }
 
-  // Récupération protégée des frontières
   if (!cityBoundary && !isFetchingCity) {
     isFetchingCity = true;
     fetchCityBoundary(lat, lng).then(data => {
@@ -287,6 +277,19 @@ const updateMapLocation = (lat, lng, accuracy) => {
   updateStats();
 };
 
+// --- SÉCURITÉ ANTI-DOUBLON POUR LA VICTOIRE 100% ---
+function checkCityCompletion(cityName, polygon, lat, lng) {
+  const COMPLETION_KEY = "tabi-completed-cities";
+  let completed = JSON.parse(localStorage.getItem(COMPLETION_KEY)) || [];
+  
+  if (completed.includes(cityName)) return; // On empêche de gagner la carte en boucle
+
+  completed.push(cityName);
+  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completed));
+  
+  awardCityCompletion(cityName, polygon, lat, lng);
+}
+
 // --- 7. LANCEMENT ET PWA ---
 initGPS(updateMapLocation, (msg) => console.warn("GPS:", msg));
 
@@ -294,20 +297,4 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
-}
-
-// --- SÉCURITÉ : NE DONNER LA CARTE QU'UNE SEULE FOIS ---
-function checkCityCompletion(cityName, polygon, lat, lng) {
-  const COMPLETION_KEY = "tabi-completed-cities";
-  let completed = JSON.parse(localStorage.getItem(COMPLETION_KEY)) || [];
-  
-  // Si on a déjà gagné cette ville, on ne fait rien
-  if (completed.includes(cityName)) return;
-
-  // Sinon, on l'ajoute à la liste des villes terminées
-  completed.push(cityName);
-  localStorage.setItem(COMPLETION_KEY, JSON.stringify(completed));
-  
-  // Et on déclenche l'animation et la récompense !
-  awardCityCompletion(cityName, polygon, lat, lng);
 }
