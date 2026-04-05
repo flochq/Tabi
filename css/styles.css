@@ -24,7 +24,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   z-index: 1000;
   pointer-events: none;
 }
-#logo-main { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; color: #fff; letter-spacing: -0.05em; line-height: 1; text-transform: uppercase; text-shadow: 0 4px 20px rgba(255,255,255,0.4); }
+#logo-main { 
+  /* J'ai retiré la police forcée et le text-transform pour te rendre ton logo ! */
+  font-size: 2rem; 
+  color: #fff; 
+  line-height: 1; 
+  text-shadow: 0 4px 20px rgba(255,255,255,0.4); 
+}
 #logo-sub { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: #94a3b8; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
 
 /* =========================================
