@@ -361,6 +361,58 @@ export function geoJsonToSvgPath(geoJson) {
     });
     pathStr += "Z ";
   });
+
+  // --- MÉCANIQUE DES 100% : CRÉATION DE LA CARTE DE VICTOIRE ---
+export function awardCityCompletion(cityName, polygon, lat, lng) {
+  // 1. On génère le tracé SVG unique de la ville
+  const dynamicPath = geoJsonToSvgPath(polygon);
   
+  // 2. On crée la carte spéciale "100%"
+  const specialCard = {
+      name: cityName,
+      region: "Exploration Totale",
+      type: "Ville Maîtrisée",
+      rarity: "legendary", // Elle brillera en violet néon !
+      emoji: "🏆",
+      lat: lat,
+      lon: lng,
+      uid: `EXP-${cityName.substring(0,3).toUpperCase()}-100`, // Ex: EXP-SAR-100
+      svgPath: dynamicPath
+  };
+
+  // 3. Sauvegarde dans la collection locale
+  const gachaKey = "tabi-gacha-v1";
+  let state = JSON.parse(localStorage.getItem(gachaKey)) || { draws: 0, collection: [] };
+  if (!state.collection) state.collection = [];
+  state.collection.push(specialCard);
+  localStorage.setItem(gachaKey, JSON.stringify(state));
+
+  // Mise à jour du compteur si le menu est ouvert
+  const btnCollectionCount = document.getElementById("btn-collection-count");
+  if (btnCollectionCount) btnCollectionCount.textContent = state.collection.length;
+
+  // 4. Déclenchement de l'hologramme de victoire en plein écran
+  const overlay = document.getElementById("draw-overlay");
+  const wrap = document.getElementById("reveal-card-wrap");
+  const label = document.getElementById("reveal-label");
+  const btn = document.getElementById("reveal-close-btn");
+
+  if(overlay && wrap && label && btn) {
+      wrap.innerHTML = buildCard(specialCard, true); // On utilise notre nouveau design !
+      label.innerHTML = `INCROYABLE !<br>Vous avez cartographié ${cityName} !`;
+
+      overlay.style.display = "flex";
+      setTimeout(() => {
+        overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
+        wrap.style.transform = "rotateY(0deg) scale(1)";
+        wrap.style.opacity = "1";
+      }, 50);
+
+      setTimeout(() => {
+        label.style.color = "rgba(255,255,255,0.8)";
+        btn.style.opacity = "1";
+      }, 800);
+  }
+}
   return pathStr;
 }
