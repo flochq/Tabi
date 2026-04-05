@@ -115,7 +115,17 @@ body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0f1
 .gacha-card-name { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: 0.05em; }
 .gacha-card-region { font-size: 0.65rem; color: #94a3b8; font-family: 'Space Mono', monospace; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
 .gacha-card-stat { font-size: 0.65rem; font-family: 'Space Mono', monospace; color: #cbd5e1; display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
-.gacha-mini { border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+.gacha-mini { 
+  border-radius: 12px; 
+  padding: 12px 8px; 
+  text-align: center; 
+  cursor: pointer; /* ➔ ACTIVE LE PETIT DOIGT AU SURVOL */
+  transition: transform 0.2s, box-shadow 0.2s; 
+  background: rgba(15, 23, 42, 0.6); 
+  backdrop-filter: blur(8px); 
+  height: 110px; /* ➔ FIXE LA HAUTEUR */
+  position: relative; /* ➔ NÉCESSAIRE POUR LE MACARON x5 */
+}
 .gacha-mini.common { border: 1px solid rgba(148, 163, 184, 0.4); }
 .gacha-mini.rare { border: 1px solid rgba(56, 189, 248, 0.5); }
 .gacha-mini.epic { border: 1px solid rgba(250, 204, 21, 0.6); }
