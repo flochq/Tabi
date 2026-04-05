@@ -1,40 +1,26 @@
-/* css/styles.css */
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400..800&display=swap');
-
 /* =========================================
-   1. BASE & MAP
+   1. BASE & RESET
 ========================================= */
-* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0f172a; }
-
-#map {
-  width: 100%;
-  height: 100vh;
-  background: #0f172a;
-  z-index: 1;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body, html { width: 100%; height: 100%; overflow: hidden; background-color: #0f172a; font-family: 'Space Mono', monospace; }
+#map { width: 100%; height: 100%; z-index: 1; }
 
 /* =========================================
-   2. TOP UI (Logo & Stats)
+   2. BROUILLARD, CARTE & JOUEUR
 ========================================= */
-#logo {
-  position: absolute;
-  top: env(safe-area-inset-top, 20px);
-  left: 20px;
-  z-index: 1000;
-  pointer-events: none;
-}
-#logo-main { 
-  /* J'ai retiré la police forcée et le text-transform pour te rendre ton logo ! */
-  font-size: 2rem; 
-  color: #fff; 
-  line-height: 1; 
-  text-shadow: 0 4px 20px rgba(255,255,255,0.4); 
-}
-#logo-sub { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: #94a3b8; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
+.fog-layer { filter: blur(15px); transition: d 0.5s ease; }
+#gps-dot { position: absolute; top: calc(env(safe-area-inset-top, 20px) + 24px); right: 16px; z-index: 1000; width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+#gps-dot.active { background: #2563eb; animation: pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.6); } 70% { box-shadow: 0 0 0 8px rgba(37,99,235,0); } 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } }
+.user-dot { width: 16px; height: 16px; border-radius: 50%; background: #0ea5e9; border: 2px solid #fff; animation: pulse-user 2s infinite; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+@keyframes pulse-user { 0% { box-shadow: 0 0 0 0 rgba(14,165,233,0.6); } 70% { box-shadow: 0 0 0 16px rgba(14,165,233,0); } 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); } }
+
+#logo { position: absolute; top: calc(env(safe-area-inset-top, 20px) + 16px); left: 16px; z-index: 1000; pointer-events: none; }
+#logo h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+#logo p { font-size: 0.6rem; color: #cbd5e1; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-top: 2px; }
 
 /* =========================================
-   3. BOTTOM NAVIGATION BAR (Extra basse)
+   3. BOTTOM NAVIGATION BAR
 ========================================= */
 #bottom-bar {
   position: fixed;
@@ -47,6 +33,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   display: flex;
   justify-content: space-around;
   align-items: center;
+  /* ➔ FORCÉ EN BAS : On retire le 'env()' d'Apple et on met un padding fixe très court */
   padding: 8px 0 12px; 
   z-index: 1050;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
@@ -65,29 +52,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   cursor: pointer;
   flex: 1;
   transition: transform 0.1s, color 0.2s;
-  position: relative;
 }
 
-.nav-item:active { transform: scale(0.9); }
+/* ➔ LA POLICE SAUVÉE : Ces lignes redonnent le bon look aux icônes et aux textes */
 .nav-icon { font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 800; }
 .nav-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
-#btn-draw-dot {
-  position: absolute;
-  top: -2px;
-  right: calc(50% - 15px);
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-  border: 2px solid #0f172a;
-}
 
 /* =========================================
-   4. ELEMENTS FLOTTANTS (Appareil photo, Info)
+   4. ELEMENTS FLOTTANTS (Juste au-dessus de la nav)
 ========================================= */
 #route-info {
   position: absolute;
+  /* ➔ ABAISSÉ : Adapté à la nouvelle barre super basse */
   bottom: 60px;
   left: 50%;
   transform: translateX(-50%);
@@ -108,6 +85,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 
 #camera-btn { 
   position: absolute; 
+  /* ➔ ABAISSÉ */
   bottom: 60px; 
   left: 50%; 
   transform: translateX(-50%); 
@@ -117,164 +95,73 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 #camera-trigger { display: flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 30px; background: #2563eb; color: #fff; font-family: "Space Mono", monospace; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.05em; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(37,99,235,0.5); transition: transform 0.1s; }
 #camera-trigger:active { transform: scale(0.95); }
 #camera-poi-name { font-family: "Space Mono", monospace; font-size: 0.65rem; color: #1e293b; margin-top: 8px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 12px; display: inline-block; font-weight: bold; }
+/* =========================================
+   5. MONUMENTS (POI)
+========================================= */
+.poi-dot { width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); border: 1.5px solid rgba(37, 99, 235, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.15); animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.poi-dot.discovered { border-color: #fbbf24; background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 12px rgba(251, 191, 36, 0.4); }
+@keyframes pop-in { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
 /* =========================================
-   5. ÉCRAN GACHA & GLOBE
+   6. GACHA & CARTES (Holographique)
 ========================================= */
-#draw-screen {
-  position: fixed; inset: 0; z-index: 1100;
-  background: #020617;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-}
-#globe-container {
-  width: 100%; max-width: 400px; aspect-ratio: 1;
-  position: relative; display: flex; justify-content: center; align-items: center;
-}
-#globe-canvas { width: 90%; height: 90%; filter: drop-shadow(0 0 30px rgba(56,189,248,0.2)); }
-#globe-draw-btn {
-  margin-top: 40px; padding: 16px 32px; border-radius: 30px;
-  background: linear-gradient(135deg, #38bdf8, #2563eb); border: none;
-  color: #fff; font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: bold;
-  cursor: pointer; box-shadow: 0 10px 30px rgba(37,99,235,0.4);
-  transition: transform 0.1s;
-}
-#globe-draw-btn:active:not(:disabled) { transform: scale(0.95); }
-#globe-close-btn {
-  position: absolute; 
-  /* ➔ ABAISSÉ : On force une marge de sécurité de 47px minimum + 15px */
-  top: calc(env(safe-area-inset-top, 47px) + 15px); 
-  right: 20px;
-  background: rgba(255,255,255,0.1); border: none; width: 40px; height: 40px; border-radius: 50%;
-  color: #fff; font-size: 1.2rem; cursor: pointer;
-}
+@keyframes pulse-legendary { 0%, 100% { box-shadow: 0 0 30px rgba(217, 70, 239, 0.4), inset 0 0 0 2px rgba(217, 70, 239, 0.8); } 50% { box-shadow: 0 0 50px rgba(217, 70, 239, 0.8), inset 0 0 0 3px rgba(217, 70, 239, 1); } }
+.gacha-card { border-radius: 18px; padding: 20px; width: 240px; position: relative; overflow: hidden; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(20px); color: #f8fafc; font-family: 'Syne', sans-serif; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+.gacha-card.common { border: 1px solid rgba(148, 163, 184, 0.3); box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.5); }
+.gacha-card.rare { border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.6), 0 0 20px rgba(56, 189, 248, 0.2); }
+.gacha-card.epic { border: 1px solid rgba(250, 204, 21, 0.3); box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.7), 0 0 30px rgba(250, 204, 21, 0.3); }
+.gacha-card.legendary { border: 1px solid rgba(217, 70, 239, 0.5); animation: pulse-legendary 2s infinite; background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(74,4,78,0.6)); }
+.gacha-card-rarity { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 12px; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; }
+.gacha-card-name { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: 0.05em; }
+.gacha-card-region { font-size: 0.65rem; color: #94a3b8; font-family: 'Space Mono', monospace; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
+.gacha-card-stat { font-size: 0.65rem; font-family: 'Space Mono', monospace; color: #cbd5e1; display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+.gacha-mini { border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+.gacha-mini.common { border: 1px solid rgba(148, 163, 184, 0.4); }
+.gacha-mini.rare { border: 1px solid rgba(56, 189, 248, 0.5); }
+.gacha-mini.epic { border: 1px solid rgba(250, 204, 21, 0.6); }
+.gacha-mini.legendary { border: 1px solid rgba(217, 70, 239, 0.8); }
+.gacha-mini-emoji { font-size: 1.6rem; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.gacha-mini-name { font-size: 0.55rem; font-family: 'Space Mono', monospace; color: #e2e8f0; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
 
-#collection-btn {
-  position: absolute; 
-  /* ➔ ABAISSÉ : Même chose pour qu'il soit aligné avec la croix */
-  top: calc(env(safe-area-inset-top, 47px) + 15px); 
-  left: 20px;
-  background: rgba(255,255,255,0.1); border: none; padding: 8px 16px; border-radius: 20px;
-  color: #fff; font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;
-}
+/* Corrections encoches modales Gacha */
+#draw-screen > div:first-child, #collection-screen > div:first-child { padding-top: calc(env(safe-area-inset-top, 20px) + 20px) !important; }
 
-/* =========================================
-   6. GACHA CARTES & COLLECTION
-========================================= */
-.gacha-card {
-  width: 240px; height: 340px; border-radius: 20px; padding: 20px;
-  display: flex; flex-direction: column; position: relative; overflow: hidden;
-  font-family: 'Space Mono', monospace; color: #fff;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.2);
-}
-.gacha-card::before {
-  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-  transform: rotate(45deg); animation: cardShine 3s infinite linear; pointer-events: none;
-}
-@keyframes cardShine { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
-
-.gacha-card.common { background: linear-gradient(135deg, #1e293b, #0f172a); }
-.gacha-card.rare { background: linear-gradient(135deg, #1e3a8a, #172554); box-shadow: 0 0 30px rgba(59,130,246,0.3); }
-.gacha-card.epic { background: linear-gradient(135deg, #713f12, #422006); box-shadow: 0 0 40px rgba(234,179,8,0.4); }
-.gacha-card.legendary { background: linear-gradient(135deg, #701a75, #4a044e); box-shadow: 0 0 50px rgba(217,70,239,0.5); }
-
-.gacha-card-rarity { display: flex; justify-content: space-between; font-size: 0.65rem; letter-spacing: 0.1em; margin-bottom: 15px; opacity: 0.8; }
-.gacha-card-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; line-height: 1; margin-bottom: 4px; letter-spacing: -0.03em; }
-.gacha-card-region { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; margin-bottom: auto; letter-spacing: 0.05em; }
-.gacha-card-stat { display: flex; justify-content: space-between; font-size: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 16px; }
-
-/* Grille Collection Corrigée */
-#collection-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 20px;
-  overflow-y: auto;
-  align-content: start; /* Empêche l'étirement ! */
-}
-
-/* Miniatures Corrigées */
-.gacha-mini {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  height: 110px; /* Hauteur fixe ! */
-  cursor: pointer; /* Curseur main ! */
-  transition: transform 0.2s, box-shadow 0.2s;
-  position: relative;
-}
-.gacha-mini:active { transform: scale(0.95); }
-
+/* Badge de quantité pour les doublons dans la collection */
 .gacha-mini-count {
-  position: absolute; top: 4px; right: 4px;
-  background: #fbbf24; color: #0f172a; font-size: 0.55rem;
-  font-family: 'Space Mono', monospace; font-weight: bold;
-  padding: 2px 6px; border-radius: 8px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-
-.gacha-mini.rare { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 10px rgba(59,130,246,0.1); }
-.gacha-mini.epic { border-color: rgba(234,179,8,0.5); box-shadow: 0 0 10px rgba(234,179,8,0.1); }
-.gacha-mini.legendary { border-color: rgba(217,70,239,0.5); box-shadow: 0 0 10px rgba(217,70,239,0.1); }
-
-.gacha-mini-emoji { font-size: 2rem; position: relative; z-index: 2; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
-.gacha-mini-name { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; position: relative; z-index: 2; }
-
-/* =========================================
-   7. REVEAL ANIMATION (Overlay Plein Écran)
-========================================= */
-#draw-overlay {
-  position: fixed; inset: 0; z-index: 1200;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0); transition: background 0.8s ease;
-}
-#reveal-card-wrap {
-  transform: rotateY(90deg) scale(0.8); opacity: 0;
-  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.8s;
-  transform-style: preserve-3d;
-}
-#reveal-label {
-  margin-top: 30px; font-family: 'Space Mono', monospace; font-size: 0.85rem;
-  color: rgba(255,255,255,0); letter-spacing: 0.2em; text-transform: uppercase; text-align: center;
-  transition: color 0.5s;
-}
-#reveal-close-btn {
-  margin-top: 40px; padding: 12px 24px; border-radius: 20px; background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2); color: #fff; font-family: 'Space Mono', monospace;
-  font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.5s, background 0.2s;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #fbbf24;
+  color: #0f172a;
+  font-size: 0.55rem;
+  font-family: 'Space Mono', monospace;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 8px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 /* =========================================
-   8. MARKERS MAP ET LEAFLET
-========================================= */
-.user-dot { width: 16px; height: 16px; background: #38bdf8; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px rgba(56,189,248,0.8); }
-.poi-dot { width: 34px; height: 34px; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 2px solid #e2e8f0; transition: all 0.3s; }
-.poi-dot.discovered { background: #22c55e; border-color: #16a34a; box-shadow: 0 0 15px rgba(34,197,94,0.4); filter: grayscale(0); }
-.leaflet-popup-content-wrapper { background: rgba(15,23,42,0.9); color: #fff; border-radius: 12px; backdrop-filter: blur(8px); }
-.leaflet-popup-tip { background: rgba(15,23,42,0.9); }
-
-/* =========================================
-   9. MISSIONS QUOTIDIENNES (Menu et Boutons)
+   9. MISSIONS QUOTIDIENNES (Bouton & Menu)
 ========================================= */
 #missions-btn {
-  position: absolute; top: calc(env(safe-area-inset-top, 20px) + 75px); left: 16px;
-  z-index: 1000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 16px; border-radius: 20px;
-  font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: bold;
-  cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.3s;
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 20px) + 75px);
+  left: 16px;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: all 0.3s;
 }
-#missions-btn:active { transform: scale(0.95); }
-#missions-btn.completed { background: rgba(22, 101, 52, 0.85); border-color: #4ade80; color: #4ade80; box-shadow: 0 0 15px rgba(74, 222, 128, 0.3); }
 
-.mission-item { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: all 0.3s; }
-.mission-item.completed { border-color: rgba(74, 222, 128, 0.5); background: rgba(22, 101, 52, 0.2); }
-.mission-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.mission-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; color: #fff; line-height: 1.2; }
-.mission-reward { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 4px 8px; border-radius: 8px; white-space: nowrap; margin-left: 12px;}
-.mission-progress-bg { height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; margin-top: 4px; }
-.mission-progress-bar { height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-.mission-item.completed .mission-progress-bar { background: #4ade80; }
+#missions-btn:active { transform: scale(0.95); }
