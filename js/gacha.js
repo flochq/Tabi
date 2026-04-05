@@ -66,10 +66,20 @@ function rollRarity() {
 }
 
 // Dans js/gacha.js
-function buildCard(city, large = true) {
-  const visual = CITY_VISUALS[city.name] || CITY_VISUALS["Paris"]; 
+export function buildCard(city, large = true) {
+  // ➔ NOUVEAU : Si la ville possède un tracé enregistré ou un polygone généré, on l'utilise.
+  // Sinon, on cherche dans les visuels en dur, sinon on met un carré par défaut.
+  let dynamicPath = city.svgPath;
+  if (!dynamicPath && city.polygon) dynamicPath = geoJsonToSvgPath(city.polygon);
+  
+  const visual = dynamicPath 
+    ? { sil: dynamicPath, svg: (c) => `<path d="${dynamicPath}" fill="${c}"/>` }
+    : (CITY_VISUALS[city.name] || { sil: "M20 20 L80 20 L80 40 L20 40 Z", svg: (c) => `<path d="M20 20 L80 20 L80 40 L20 40 Z" fill="${c}"/>` });
+
   const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
   const c = rc.accent; 
+
+  // ... (Garde la suite de ton code actuel pour le HTML : if (!large) { ... } etc.)
 
   if (!large) {
     return `<div class="gacha-mini ${city.rarity}" title="${city.name}" style="position:relative;overflow:hidden;">
