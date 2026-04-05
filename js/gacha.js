@@ -67,10 +67,11 @@ function rollRarity() {
 
 // Dans js/gacha.js
 export function buildCard(city, large = true) {
-  // ➔ NOUVEAU : Si la ville possède un tracé enregistré ou un polygone généré, on l'utilise.
-  // Sinon, on cherche dans les visuels en dur, sinon on met un carré par défaut.
+  // 1. Détection de la forme dynamique ou statique
   let dynamicPath = city.svgPath;
-  if (!dynamicPath && city.polygon) dynamicPath = geoJsonToSvgPath(city.polygon);
+  if (!dynamicPath && city.polygon) {
+    dynamicPath = geoJsonToSvgPath(city.polygon);
+  }
   
   const visual = dynamicPath 
     ? { sil: dynamicPath, svg: (c) => `<path d="${dynamicPath}" fill="${c}"/>` }
@@ -79,8 +80,7 @@ export function buildCard(city, large = true) {
   const rc = RARITY_COLORS[city.rarity] || RARITY_COLORS.common;
   const c = rc.accent; 
 
-  // ... (Garde la suite de ton code actuel pour le HTML : if (!large) { ... } etc.)
-
+  // 2. Affichage Miniature (Collection)
   if (!large) {
     return `<div class="gacha-mini ${city.rarity}" title="${city.name}" style="position:relative;overflow:hidden;">
       <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
@@ -89,7 +89,7 @@ export function buildCard(city, large = true) {
     </div>`;
   }
 
-  // ➔ NOUVEAU : Formatage des coordonnées GPS
+  // 3. Affichage Grande Carte (Tirage)
   const latStr = city.lat >= 0 ? `N${city.lat.toFixed(2)}` : `S${Math.abs(city.lat).toFixed(2)}`;
   const lonStr = city.lon >= 0 ? `E${city.lon.toFixed(2)}` : `W${Math.abs(city.lon).toFixed(2)}`;
 
