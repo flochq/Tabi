@@ -68,7 +68,7 @@ const updateStats = () => {
           updateMissionProgress('coverage', pct, true); 
 
           // ➔ NOUVEAU : LA MÉCANIQUE DES 100%
-          if (pct >= 00.1) {
+          if (pct >= 0.1) {
             checkCityCompletion(cityBoundary.name, cityBoundary.polygon, lastGpsPos.lat, lastGpsPos.lng);
           }
         }
