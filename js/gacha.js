@@ -311,3 +311,46 @@ function showGachaReveal() {
 
 // Initialisation au chargement
 updateGachaDistance(0);
+
+// Convertisseur : Coordonnées GPS (GeoJSON) ➔ Tracé Vectoriel (SVG Path)
+export function geoJsonToSvgPath(geoJson) {
+  if (!geoJson || !geoJson.coordinates) return null;
+  
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  
+  // Gère les villes simples (Polygon) ou complexes avec enclaves/îles (MultiPolygon)
+  const polys = geoJson.type === 'MultiPolygon' ? geoJson.coordinates : [geoJson.coordinates];
+  
+  // 1. Trouver les limites extrêmes de la ville (Bounding Box)
+  polys.forEach(poly => {
+    poly[0].forEach(coord => {
+      if (coord[0] < minX) minX = coord[0];
+      if (coord[0] > maxX) maxX = coord[0];
+      if (coord[1] < minY) minY = coord[1];
+      if (coord[1] > maxY) maxY = coord[1];
+    });
+  });
+
+  // 2. Calculer l'échelle pour que ça rentre dans une zone de 90x45 (avec marges)
+  const lonDiff = maxX - minX || 1;
+  const latDiff = maxY - minY || 1;
+  const scale = Math.min(90 / lonDiff, 45 / latDiff);
+  
+  // Centrer la forme
+  const xOffset = (100 - (lonDiff * scale)) / 2;
+  const yOffset = (55 - (latDiff * scale)) / 2;
+
+  // 3. Tracer le chemin
+  let pathStr = "";
+  polys.forEach(poly => {
+    poly[0].forEach((coord, i) => {
+      const x = (coord[0] - minX) * scale + xOffset;
+      const y = 55 - ((coord[1] - minY) * scale + yOffset); // Inverser l'axe Y pour l'écran
+      // .toFixed(1) permet d'alléger considérablement le texte final !
+      pathStr += (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)} ` : `L ${x.toFixed(1)} ${y.toFixed(1)} `);
+    });
+    pathStr += "Z ";
+  });
+  
+  return pathStr;
+}
