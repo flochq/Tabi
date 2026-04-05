@@ -61,7 +61,7 @@ export function geoJsonToSvgPath(geoJson) {
 }
 
 // --- 3. GÉNÉRATEUR DE CARTES SÉCURISÉ (DESIGN DATAPAD) ---
-export function buildCard(city, large = true) {
+export function buildCard(city, large = true, count = 1) {
   try {
     let dynamicPath = city.svgPath;
     if (!dynamicPath && city.polygon) {
@@ -76,7 +76,11 @@ export function buildCard(city, large = true) {
     const c = rc.accent; 
 
     if (!large) {
-      return `<div class="gacha-mini ${city.rarity || 'common'}" title="${city.name || 'Inconnu'}" style="position:relative;overflow:hidden;">
+      const countHtml = count > 1 ? `<div class="gacha-mini-count">x${count}</div>` : '';
+      const safeName = city.name ? city.name.replace(/'/g, "\\'") : '';
+      
+      return `<div class="gacha-mini ${city.rarity || 'common'}" title="${city.name || 'Inconnu'}" style="position:relative;overflow:hidden;" onclick="viewCollectionCard('${safeName}')">
+        ${countHtml}
         <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
         <div class="gacha-mini-emoji">${city.emoji || '❓'}</div>
         <div class="gacha-mini-name">${city.name || 'Inconnu'}</div>
@@ -343,15 +347,15 @@ window.closeReveal = () => {
   const gachaKey = "tabi-gacha-v1";
   const state = JSON.parse(localStorage.getItem(gachaKey));
   const drawBtn = document.getElementById("globe-draw-btn");
-  drawBtn.disabled = state.draws <= 0;
+  if(drawBtn && state) drawBtn.disabled = state.draws <= 0;
   
   const btnDrawsCount = document.getElementById("btn-draws-count");
-  if (btnDrawsCount) btnDrawsCount.textContent = state.draws;
+  if (btnDrawsCount && state) btnDrawsCount.textContent = state.draws;
   const btnColCount = document.getElementById("btn-collection-count");
-  if (btnColCount) btnColCount.textContent = state.collection.length;
+  if (btnColCount && state) btnColCount.textContent = state.collection.length;
 };
 
-// --- 7. COLLECTION SÉCURISÉE ---
+// --- 7. COLLECTION SÉCURISÉE AVEC EMPILAGE (STACKING) ---
 window.openCollectionScreen = () => {
   try {
     const gachaKey = "tabi-gacha-v1";
@@ -365,7 +369,18 @@ window.openCollectionScreen = () => {
       container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;font-size:0.8rem;">Aucune donnée extraite.</div>`;
     } else {
       const validCards = col.filter(city => city && typeof city === 'object');
-      container.innerHTML = validCards.map(city => buildCard(city, false)).reverse().join('');
+      
+      const grouped = {};
+      validCards.forEach(city => {
+        const name = city.name || "Inconnu";
+        if (!grouped[name]) {
+          grouped[name] = { city: city, count: 0 };
+        }
+        grouped[name].count += 1;
+      });
+      
+      const groupedArray = Object.values(grouped).reverse();
+      container.innerHTML = groupedArray.map(item => buildCard(item.city, false, item.count)).join('');
     }
     document.getElementById("collection-screen").style.display = "flex";
   } catch (err) {
@@ -375,4 +390,30 @@ window.openCollectionScreen = () => {
 
 window.closeCollectionScreen = () => {
   document.getElementById("collection-screen").style.display = "none";
+};
+
+window.viewCollectionCard = (cityName) => {
+  const gachaKey = "tabi-gacha-v1";
+  const state = JSON.parse(localStorage.getItem(gachaKey));
+  if (!state || !state.collection) return;
+  
+  const city = state.collection.find(c => c.name === cityName);
+  if (!city) return;
+
+  const overlay = document.getElementById("draw-overlay");
+  const wrap = document.getElementById("reveal-card-wrap");
+  const label = document.getElementById("reveal-label");
+  const btn = document.getElementById("reveal-close-btn");
+
+  if(overlay && wrap && label && btn) {
+    wrap.innerHTML = buildCard(city, true);
+    label.innerHTML = "ARCHIVE SÉCURISÉE"; 
+    
+    overlay.style.display = "flex";
+    overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
+    wrap.style.transform = "rotateY(0deg) scale(1)";
+    wrap.style.opacity = "1";
+    label.style.color = "rgba(255,255,255,0.8)";
+    btn.style.opacity = "1";
+  }
 };
