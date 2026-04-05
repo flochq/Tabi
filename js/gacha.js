@@ -79,7 +79,7 @@ function buildCard(city, large = true) {
     </div>`;
   }
 
-  // Formatage des coordonnées
+  // ➔ NOUVEAU : Formatage des coordonnées GPS
   const latStr = city.lat >= 0 ? `N${city.lat.toFixed(2)}` : `S${Math.abs(city.lat).toFixed(2)}`;
   const lonStr = city.lon >= 0 ? `E${city.lon.toFixed(2)}` : `W${Math.abs(city.lon).toFixed(2)}`;
 
@@ -91,6 +91,7 @@ function buildCard(city, large = true) {
     
     <div style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:12px;margin-bottom:12px;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:center;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5);">
       <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);z-index:2;pointer-events:none;"></div>
+      
       <svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;left:0;width:100%;height:100%;opacity:0.15;"><path d="${visual.sil}" fill="${c}"/></svg>
       <svg viewBox="0 0 100 55" style="width:190px;height:104px;position:relative;z-index:1;filter:drop-shadow(0 0 8px ${c});">${visual.svg(c)}</svg>
     </div>
@@ -114,7 +115,6 @@ function buildCard(city, large = true) {
     </div>
   </div>`;
 }
-
 // --- FONCTIONS EXPORTÉES POUR LE HTML ---
 window.openDrawScreen = () => {
   const state = loadGachaState();
