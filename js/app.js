@@ -63,7 +63,7 @@ const updateStats = () => {
           updateMissionProgress('coverage', pct, true); 
           
           // ➔ LA FAMEUSE VÉRIFICATION DES 99% DE LA VILLE
-          if (pct >= 99.0) {
+          if (pct >= 0.1) {
             checkCityCompletion(cityBoundary.name, cityBoundary.polygon, lastGpsPos.lat, lastGpsPos.lng);
           }
         }
