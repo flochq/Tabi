@@ -79,7 +79,7 @@ export function buildCard(city, large = true, count = 1) {
       const countHtml = count > 1 ? `<div class="gacha-mini-count">x${count}</div>` : '';
       const safeName = city.name ? city.name.replace(/'/g, "\\'") : '';
       
-      return `<div class="gacha-mini ${city.rarity || 'common'}" title="${city.name || 'Inconnu'}" style="position:relative;overflow:hidden;" onclick="viewCollectionCard('${safeName}')">
+      return `<div class="gacha-mini ${city.rarity || 'common'}" title="${city.name || 'Inconnu'}" onclick="viewCollectionCard('${safeName}')">
         ${countHtml}
         <svg viewBox="0 0 100 55" style="position:absolute;bottom:0;left:0;width:100%;height:55%;opacity:0.1;"><path d="${visual.sil}" fill="${c}"/></svg>
         <div class="gacha-mini-emoji">${city.emoji || '❓'}</div>
@@ -160,6 +160,7 @@ export function awardCityCompletion(cityName, polygon, lat, lng) {
       wrap.innerHTML = buildCard(specialCard, true);
       label.innerHTML = `INCROYABLE !<br>Vous avez cartographié ${cityName} !`;
 
+      overlay.style.zIndex = "2000";
       overlay.style.display = "flex";
       setTimeout(() => {
         overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
@@ -320,6 +321,8 @@ function showReveal(city) {
 
   wrap.innerHTML = buildCard(city, true);
   label.innerHTML = "DONNÉES EXTRAITES<br>NOUVELLE CARTE AJOUTÉE";
+  
+  overlay.style.zIndex = "2000";
   overlay.style.display = "flex";
   
   setTimeout(() => {
@@ -355,7 +358,7 @@ window.closeReveal = () => {
   if (btnColCount && state) btnColCount.textContent = state.collection.length;
 };
 
-// --- 7. COLLECTION SÉCURISÉE AVEC EMPILAGE (STACKING) ---
+// --- 7. COLLECTION SÉCURISÉE AVEC EMPILAGE ET CLIC ---
 window.openCollectionScreen = () => {
   try {
     const gachaKey = "tabi-gacha-v1";
@@ -409,11 +412,19 @@ window.viewCollectionCard = (cityName) => {
     wrap.innerHTML = buildCard(city, true);
     label.innerHTML = "ARCHIVE SÉCURISÉE"; 
     
+    // ➔ ON FORCE L'AFFICHAGE PAR DESSUS LA COLLECTION
+    overlay.style.zIndex = "2000";
     overlay.style.display = "flex";
-    overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
-    wrap.style.transform = "rotateY(0deg) scale(1)";
-    wrap.style.opacity = "1";
-    label.style.color = "rgba(255,255,255,0.8)";
-    btn.style.opacity = "1";
+    
+    setTimeout(() => {
+      overlay.style.backgroundColor = "rgba(4, 8, 20, 0.95)";
+      wrap.style.transform = "rotateY(0deg) scale(1)";
+      wrap.style.opacity = "1";
+    }, 50);
+
+    setTimeout(() => {
+      label.style.color = "rgba(255,255,255,0.8)";
+      btn.style.opacity = "1";
+    }, 400); // Animation un peu plus rapide pour la fluidité
   }
 };
